@@ -7,8 +7,11 @@ export class CreateVeterinarioDto {
   @ApiProperty({ description: 'Apellidos del veterinario', example: 'Gómez' })
   apellidos: string;
 
-  @ApiProperty({ description: 'Edad del veterinario', example: 42 })
-  edad: number;
+  @ApiProperty({
+    description: 'Fecha de nacimiento del veterinario',
+    example: '1985-03-20',
+  })
+  fechaNacimiento: string | Date;
 
   @ApiProperty({ description: 'Dirección física', example: 'Calle Falsa 123' })
   direccion: string;

@@ -11,6 +11,7 @@ export class VeterinariosService {
     const newVeterinario: Veterinario = {
       id: `vet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createVeterinarioDto,
+      fechaNacimiento: new Date(createVeterinarioDto.fechaNacimiento),
     };
     this.veterinarios.push(newVeterinario);
     return this.mapToGetDto(newVeterinario);
@@ -44,9 +45,12 @@ export class VeterinariosService {
     if (vetIndex === -1) {
       throw new NotFoundException(`Veterinario con ID ${id} no encontrado`);
     }
-    const updatedVet = {
+    const updatedVet: Veterinario = {
       ...this.veterinarios[vetIndex],
       ...updateVeterinarioDto,
+      fechaNacimiento: updateVeterinarioDto.fechaNacimiento
+        ? new Date(updateVeterinarioDto.fechaNacimiento)
+        : this.veterinarios[vetIndex].fechaNacimiento,
     };
     this.veterinarios[vetIndex] = updatedVet;
     return this.mapToGetDto(updatedVet);

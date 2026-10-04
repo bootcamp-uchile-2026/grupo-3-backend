@@ -7,8 +7,11 @@ export class CreateDuenioDto {
   @ApiProperty({ description: 'Apellidos del dueño', example: 'Pérez' })
   apellidos: string;
 
-  @ApiProperty({ description: 'Edad del dueño', example: 35 })
-  edad: number;
+  @ApiProperty({
+    description: 'Fecha de nacimiento del dueño',
+    example: '1990-05-15',
+  })
+  fechaNacimiento: string | Date;
 
   @ApiProperty({
     description: 'Dirección física',

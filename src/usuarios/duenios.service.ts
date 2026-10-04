@@ -11,6 +11,7 @@ export class DueniosService {
     const newDuenio: DuenioMascota = {
       id: `duenio-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createDuenioDto,
+      fechaNacimiento: new Date(createDuenioDto.fechaNacimiento),
     };
     this.duenios.push(newDuenio);
     return this.mapToGetDto(newDuenio);
@@ -42,9 +43,12 @@ export class DueniosService {
     if (duenioIndex === -1) {
       throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
     }
-    const updatedDuenio = {
+    const updatedDuenio: DuenioMascota = {
       ...this.duenios[duenioIndex],
       ...updateDuenioDto,
+      fechaNacimiento: updateDuenioDto.fechaNacimiento
+        ? new Date(updateDuenioDto.fechaNacimiento)
+        : this.duenios[duenioIndex].fechaNacimiento,
     };
     this.duenios[duenioIndex] = updatedDuenio;
     return this.mapToGetDto(updatedDuenio);
