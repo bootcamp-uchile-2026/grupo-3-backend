@@ -3,6 +3,7 @@ import { FichaMascota } from './entities/mascota.entity';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { GetMascotaDto } from './dto/get-mascota.dto';
 import { DueniosService } from './duenios.service';
+import { calcularEdad } from '../common/utils/date.utils';
 
 @Injectable()
 export class MascotasService {
@@ -14,10 +15,12 @@ export class MascotasService {
     // Validar que el dueño exista
     this.dueniosService.findOne(createMascotaDto.duenioId);
 
+    const fechaNac = new Date(createMascotaDto.fechaNacimiento);
     const newMascota: FichaMascota = {
       id: `mascota-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createMascotaDto,
-      fechaNacimiento: new Date(createMascotaDto.fechaNacimiento),
+      fechaNacimiento: fechaNac,
+      edad: calcularEdad(fechaNac),
     };
     this.mascotas.push(newMascota);
     return this.mapToGetDto(newMascota);
@@ -64,12 +67,15 @@ export class MascotasService {
       this.dueniosService.findOne(updateMascotaDto.duenioId);
     }
 
-    const updatedMascota = {
+    const fechaNac = updateMascotaDto.fechaNacimiento
+      ? new Date(updateMascotaDto.fechaNacimiento)
+      : this.mascotas[mascotaIndex].fechaNacimiento;
+
+    const updatedMascota: FichaMascota = {
       ...this.mascotas[mascotaIndex],
       ...updateMascotaDto,
-      fechaNacimiento: updateMascotaDto.fechaNacimiento
-        ? new Date(updateMascotaDto.fechaNacimiento)
-        : this.mascotas[mascotaIndex].fechaNacimiento,
+      fechaNacimiento: fechaNac,
+      edad: calcularEdad(fechaNac),
     };
     this.mascotas[mascotaIndex] = updatedMascota;
     return this.mapToGetDto(updatedMascota);
@@ -91,11 +97,14 @@ export class MascotasService {
       especie: mascota.especie,
       raza: mascota.raza,
       fechaNacimiento: mascota.fechaNacimiento,
-      edad: mascota.edad,
+      edad: calcularEdad(mascota.fechaNacimiento),
       peso: mascota.peso,
       sexo: mascota.sexo,
       foto: mascota.foto,
       duenioId: mascota.duenioId,
+      alergias: mascota.alergias,
+      enfermedadesExistentes: mascota.enfermedadesExistentes,
+      descripcionMascota: mascota.descripcionMascota,
     };
   }
 }

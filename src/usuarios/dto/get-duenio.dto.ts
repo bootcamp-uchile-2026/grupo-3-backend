@@ -20,6 +20,12 @@ export class GetDuenioDto {
   fechaNacimiento: Date;
 
   @ApiProperty({
+    description: 'Edad calculada del dueño en años',
+    example: 36,
+  })
+  edad: number;
+
+  @ApiProperty({
     description: 'Dirección física',
     example: 'Av. Providencia 1234',
   })

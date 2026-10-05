@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { AgendaCitas } from './entities/cita.entity';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
 import { DueniosService } from './duenios.service';
 import { VeterinariosService } from './veterinarios.service';
+import { MascotasService } from './mascotas.service';
 
 @Injectable()
 export class CitasService {
@@ -12,12 +17,23 @@ export class CitasService {
   constructor(
     private readonly dueniosService: DueniosService,
     private readonly veterinariosService: VeterinariosService,
+    private readonly mascotasService: MascotasService,
   ) {}
 
   create(createCitaDto: CreateCitaDto): GetCitaDto {
     // Validar que el dueño y el veterinario existan
     this.dueniosService.findOne(createCitaDto.duenioId);
     this.veterinariosService.findOne(createCitaDto.veterinarioId);
+
+    // Validar que la mascota exista
+    const mascota = this.mascotasService.findOneEntity(createCitaDto.mascotaId);
+
+    // Validar que la mascota pertenezca al dueño
+    if (mascota.duenioId !== createCitaDto.duenioId) {
+      throw new BadRequestException(
+        `La mascota con ID ${createCitaDto.mascotaId} no pertenece al dueño con ID ${createCitaDto.duenioId}`,
+      );
+    }
 
     const newCita: AgendaCitas = {
       id: `cita-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -62,11 +78,22 @@ export class CitasService {
       .map((c) => this.mapToGetDto(c));
   }
 
+  findByMascota(mascotaId: string): GetCitaDto[] {
+    this.mascotasService.findOne(mascotaId);
+    return this.citas
+      .filter((c) => c.mascotaId === mascotaId)
+      .map((c) => this.mapToGetDto(c));
+  }
+
   update(id: string, updateCitaDto: Partial<CreateCitaDto>): GetCitaDto {
     const citaIndex = this.citas.findIndex((c) => c.id === id);
     if (citaIndex === -1) {
       throw new NotFoundException(`Cita con ID ${id} no encontrada`);
     }
+
+    const currentCita = this.citas[citaIndex];
+    const targetDuenioId = updateCitaDto.duenioId ?? currentCita.duenioId;
+    const targetMascotaId = updateCitaDto.mascotaId ?? currentCita.mascotaId;
 
     if (updateCitaDto.duenioId) {
       this.dueniosService.findOne(updateCitaDto.duenioId);
@@ -74,13 +101,25 @@ export class CitasService {
     if (updateCitaDto.veterinarioId) {
       this.veterinariosService.findOne(updateCitaDto.veterinarioId);
     }
+    if (updateCitaDto.mascotaId) {
+      this.mascotasService.findOne(updateCitaDto.mascotaId);
+    }
 
-    const updatedCita = {
-      ...this.citas[citaIndex],
+    if (updateCitaDto.duenioId || updateCitaDto.mascotaId) {
+      const mascota = this.mascotasService.findOneEntity(targetMascotaId);
+      if (mascota.duenioId !== targetDuenioId) {
+        throw new BadRequestException(
+          `La mascota con ID ${targetMascotaId} no pertenece al dueño con ID ${targetDuenioId}`,
+        );
+      }
+    }
+
+    const updatedCita: AgendaCitas = {
+      ...currentCita,
       ...updateCitaDto,
       fechaCita: updateCitaDto.fechaCita
         ? new Date(updateCitaDto.fechaCita)
-        : this.citas[citaIndex].fechaCita,
+        : currentCita.fechaCita,
     };
     this.citas[citaIndex] = updatedCita;
     return this.mapToGetDto(updatedCita);
@@ -101,6 +140,8 @@ export class CitasService {
       fechaCita: cita.fechaCita,
       duenioId: cita.duenioId,
       veterinarioId: cita.veterinarioId,
+      mascotaId: cita.mascotaId,
+      serviciosAdicionales: cita.serviciosAdicionales,
     };
   }
 }

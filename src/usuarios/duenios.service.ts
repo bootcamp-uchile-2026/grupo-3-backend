@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DuenioMascota } from './entities/duenio.entity';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
+import { calcularEdad } from '../common/utils/date.utils';
 
 @Injectable()
 export class DueniosService {
@@ -64,8 +65,10 @@ export class DueniosService {
   }
 
   private mapToGetDto(duenio: DuenioMascota): GetDuenioDto {
-    const dto = { ...duenio };
-    delete dto.password;
-    return dto;
+    const { password, ...resto } = duenio;
+    return {
+      ...resto,
+      edad: calcularEdad(duenio.fechaNacimiento),
+    };
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Veterinario } from './entities/veterinario.entity';
 import { CreateVeterinarioDto } from './dto/create-veterinario.dto';
 import { GetVeterinarioDto } from './dto/get-veterinario.dto';
+import { calcularEdad } from '../common/utils/date.utils';
 
 @Injectable()
 export class VeterinariosService {
@@ -66,8 +67,10 @@ export class VeterinariosService {
   }
 
   private mapToGetDto(veterinario: Veterinario): GetVeterinarioDto {
-    const dto = { ...veterinario };
-    delete dto.password;
-    return dto;
+    const { password, ...resto } = veterinario;
+    return {
+      ...resto,
+      edad: calcularEdad(veterinario.fechaNacimiento),
+    };
   }
 }

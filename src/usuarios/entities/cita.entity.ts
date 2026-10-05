@@ -12,4 +12,15 @@ export class AgendaCitas {
 
   @ApiProperty({ description: 'Identificador del veterinario asignado' })
   veterinarioId: string;
+
+  @ApiProperty({ description: 'Identificador de la mascota a atender' })
+  mascotaId: string;
+
+  @ApiProperty({
+    description: 'Servicios adicionales solicitados para la cita',
+    type: [String],
+    example: ['Vacunas', 'Desparasitación', 'Implantación de microchip'],
+    required: false,
+  })
+  serviciosAdicionales?: string[];
 }
