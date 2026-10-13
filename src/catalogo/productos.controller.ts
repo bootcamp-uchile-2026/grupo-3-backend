@@ -1,3 +1,4 @@
+import { UppercasePipe } from 'src/common/pipes/uppercase.pipe';
 import {
   Controller,
   Get,
@@ -19,7 +20,7 @@ import { GetResenaDto } from './dto/get-resena.dto';
 @ApiTags('Catálogo - Productos')
 @Controller('catalogo/productos')
 export class ProductosController {
-  constructor(private readonly productosService: ProductosService) {}
+  constructor(private readonly productosService: ProductosService) { }
 
   @Post()
   @ApiOperation({ summary: 'Agregar un nuevo producto al catálogo' })
@@ -112,4 +113,14 @@ export class ProductosController {
   remove(@Param('id') id: string) {
     return this.productosService.remove(id);
   }
+
+  @Get('buscar/:termino')
+  @ApiOperation({ summary: 'Buscar producto (demostración de UppercasePipe)' })
+  buscarPorTermino(@Param('termino', UppercasePipe) termino: string) {
+    return {
+      mensaje: 'El Pipe transformó exitosamente el parámetro a mayúsculas',
+      terminoRecibido: termino,
+    };
+  }
+
 }
