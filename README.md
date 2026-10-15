@@ -126,3 +126,8 @@ Requisitos: Docker y Docker Compose.
 - Proveedor: AWS EC2 (Ubuntu 24.04, t3.small, región us-east-2)
 - URL base: `http://18.226.214.170/:3000/api/v1`
 - Base de datos: MySQL 8 en contenedor, sin exposición pública
+
+
+## Modelo de datos
+
+   La primera versión del modelo de datos, con su diagrama entidad-relación y las decisiones de diseño, se encuentra en [docs/modelo-datos.md](docs/modelo-datos.md).
