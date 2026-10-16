@@ -14,9 +14,7 @@ import { GestionClinicaModule } from './gestion-clinica/gestion-clinica.module';
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
-// 2. Importamos los controladores sobre los que queremos aplicar la regla
-import { ProductosController } from './catalogo/productos.controller';
-import { DueniosController } from './usuarios/duenios.controller';
+
 
 @Module({
   imports: [UsuariosModule, CatalogoModule, GestionClinicaModule],
@@ -34,7 +32,7 @@ export class AppModule implements NestModule {
         method: RequestMethod.GET,
       })
       // Lo activamos para Productos y Dueños
-      .forRoutes(ProductosController, DueniosController);
+      .forRoutes('*');
   }
 }
 
