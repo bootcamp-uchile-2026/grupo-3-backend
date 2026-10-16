@@ -96,3 +96,38 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Ejecución con Docker
+
+Requisitos: Docker y Docker Compose.
+
+1. Copiar las variables de entorno y definir las contraseñas:
+```
+   cp .env.example .env
+```
+2. Levantar la API y la base de datos:
+```
+   docker compose up -d --build
+```
+3. La API queda disponible en `http://localhost:3000/api/v1`.
+
+### Variables de entorno
+
+| Variable | Descripción |
+|---|---|
+| `API_PORT` | Puerto publicado de la API (por defecto 3000) |
+| `MYSQL_DATABASE` | Nombre de la base de datos |
+| `MYSQL_USER` | Usuario de la base de datos usado por la API |
+| `MYSQL_PASSWORD` | Contraseña del usuario |
+| `MYSQL_ROOT_PASSWORD` | Contraseña del administrador de MySQL |
+
+### Ambiente desplegado
+
+- Proveedor: AWS EC2 (Ubuntu 24.04, t3.small, región us-east-2)
+- URL base: `http://18.226.214.170/:3000/api/v1`
+- Base de datos: MySQL 8 en contenedor, sin exposición pública
+
+
+## Modelo de datos
+
+   La primera versión del modelo de datos, con su diagrama entidad-relación y las decisiones de diseño, se encuentra en [docs/modelo-datos.md](docs/modelo-datos.md).

@@ -4,6 +4,7 @@ import {
   MiddlewareConsumer,
   RequestMethod,
 } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -37,3 +38,4 @@ export class AppModule implements NestModule {
       .forRoutes(ProductosController, DueniosController);
   }
 }
+export class AppModule { }
