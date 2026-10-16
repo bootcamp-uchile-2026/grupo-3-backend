@@ -1,25 +1,38 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+// ===== DTO de entrada (validado) =====
 
 export class CreateDireccionDto {
   @ApiProperty({ description: 'Calle y número', example: 'Av. Pajarito 3234' })
+  @IsString({ message: 'La dirección debe ser un texto' })
+  @IsNotEmpty({ message: 'La dirección no puede estar vacía' })
   direccion: string;
 
   @ApiPropertyOptional({
     description: 'Departamento, oficina o block',
     example: 'piso 5, depto 506',
   })
+  @IsOptional()
+  @IsString({ message: 'El departamento u oficina debe ser un texto' })
   departamentoOficina?: string;
 
   @ApiProperty({ description: 'Comuna', example: 'Maipú' })
+  @IsString({ message: 'La comuna debe ser un texto' })
+  @IsNotEmpty({ message: 'La comuna no puede estar vacía' })
   comuna: string;
 
   @ApiProperty({ description: 'Región', example: 'Metropolitana' })
+  @IsString({ message: 'La región debe ser un texto' })
+  @IsNotEmpty({ message: 'La región no puede estar vacía' })
   region: string;
 
   @ApiPropertyOptional({
     description: 'Puntos de referencia de entrega',
     example: 'Portón negro',
   })
+  @IsOptional()
+  @IsString({ message: 'La referencia debe ser un texto' })
   referencia?: string;
 
   @ApiPropertyOptional({
@@ -27,8 +40,12 @@ export class CreateDireccionDto {
     example: true,
     default: false,
   })
+  @IsOptional()
+  @IsBoolean({ message: 'El campo predeterminada debe ser verdadero o falso' })
   esPredeterminada?: boolean;
 }
+
+// ===== DTO de respuesta (no se valida) =====
 
 export class GetDireccionDto {
   @ApiProperty({ description: 'ID de la dirección', example: 'dir-123' })

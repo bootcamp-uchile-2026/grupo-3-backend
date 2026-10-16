@@ -1,31 +1,50 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+
+// ===== DTOs de entrada (validados) =====
 
 export class AgregarAlCarritoDto {
   @ApiProperty({ description: 'ID del producto a agregar', example: 'prod-123' })
+  @IsString({ message: 'El ID del producto debe ser un texto' })
+  @IsNotEmpty({ message: 'El ID del producto no puede estar vacío' })
   productoId: string;
 
   @ApiProperty({ description: 'Cantidad a añadir', example: 1, default: 1 })
+  @IsInt({ message: 'La cantidad debe ser un número entero' })
+  @Min(1, { message: 'La cantidad debe ser al menos 1' })
   cantidad: number;
 
   @ApiPropertyOptional({ description: 'ID del usuario si está autenticado', example: 'duenio-123' })
+  @IsOptional()
+  @IsString({ message: 'El ID del usuario debe ser un texto' })
   usuarioId?: string;
 }
 
 export class ActualizarCantidadItemDto {
   @ApiProperty({ description: 'Nueva cantidad del producto', example: 2 })
+  @IsInt({ message: 'La cantidad debe ser un número entero' })
+  @Min(1, { message: 'La cantidad debe ser al menos 1' })
   cantidad: number;
 
   @ApiPropertyOptional({ description: 'ID del usuario si está autenticado', example: 'duenio-123' })
+  @IsOptional()
+  @IsString({ message: 'El ID del usuario debe ser un texto' })
   usuarioId?: string;
 }
 
 export class AplicarCuponDto {
   @ApiProperty({ description: 'Código del cupón promocional', example: 'PETLOVE10' })
+  @IsString({ message: 'El código del cupón debe ser un texto' })
+  @IsNotEmpty({ message: 'El código del cupón no puede estar vacío' })
   codigoCupon: string;
 
   @ApiPropertyOptional({ description: 'ID del usuario si está autenticado', example: 'duenio-123' })
+  @IsOptional()
+  @IsString({ message: 'El ID del usuario debe ser un texto' })
   usuarioId?: string;
 }
+
+// ===== DTOs de respuesta (no se validan) =====
 
 export class ItemCarritoDto {
   @ApiProperty({ description: 'ID del producto', example: 'prod-123' })
