@@ -1,12 +1,14 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class RequestIdMiddleware implements NestMiddleware {
-    use(req: Request, res: Response, next: NextFunction) {
-        const requestId = crypto.randomUUID(); //Genera un id unico por request
-        req['requestId'] = requestId; //Agrega el id unico al request
-        console.log('[REQUEST]', requestId); //Imprime el id unico por request
-        next(); //Pasa al siguiente middleware
-    }
+  use(req: Request, res: Response, next: NextFunction) {
+    // Reutiliza el ID si el cliente lo envía; si no, genera uno nuevo
+    const requestId = (req.headers['x-request-id'] as string) ?? randomUUID();
+    req['requestId'] = requestId; // Disponible para los siguientes middlewares
+    res.setHeader('X-Request-Id', requestId); // Se devuelve al cliente para trazabilidad
+    next();
+  }
 }

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { RecursoNoEncontradoException } from '../common/exceptions/recurso-no-encontrado.exception';
 import { Producto } from './entities/producto.entity';
 import { Resena } from './entities/resena.entity';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -161,7 +162,7 @@ export class ProductosService {
   findOne(id: string): GetProductoDto {
     const producto = this.productos.find((p) => p.id === id);
     if (!producto) {
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoException('Producto', id);
     }
     return this.mapToGetDto(producto);
   }
@@ -169,7 +170,7 @@ export class ProductosService {
   findOneEntity(id: string): Producto {
     const producto = this.productos.find((p) => p.id === id);
     if (!producto) {
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoException('Producto', id);
     }
     return producto;
   }
@@ -180,7 +181,7 @@ export class ProductosService {
   ): GetProductoDto {
     const prodIndex = this.productos.findIndex((p) => p.id === id);
     if (prodIndex === -1) {
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoException('Producto', id);
     }
     const updatedProd: Producto = {
       ...this.productos[prodIndex],
@@ -193,7 +194,7 @@ export class ProductosService {
   remove(id: string): { message: string } {
     const prodIndex = this.productos.findIndex((p) => p.id === id);
     if (prodIndex === -1) {
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoException('Producto', id);
     }
     this.productos.splice(prodIndex, 1);
     this.resenas = this.resenas.filter((r) => r.productoId !== id);
