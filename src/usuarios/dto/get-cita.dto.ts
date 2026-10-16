@@ -18,4 +18,18 @@ export class GetCitaDto {
 
   @ApiProperty({ description: 'ID del veterinario', example: 'vet-456' })
   veterinarioId: string;
+
+  @ApiProperty({
+    description: 'ID de la mascota que será atendida',
+    example: 'mascota-123',
+  })
+  mascotaId: string;
+
+  @ApiProperty({
+    description: 'Servicios adicionales solicitados',
+    type: [String],
+    example: ['Vacunas', 'Implantación de microchip'],
+    required: false,
+  })
+  serviciosAdicionales?: string[];
 }

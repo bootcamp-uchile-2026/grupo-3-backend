@@ -29,8 +29,9 @@ export abstract class ProductoServicio {
     description:
       'Rango de edad compatible (ej. Cachorro, Adulto, Senior, Todos)',
     example: 'Todos',
+    required: false,
   })
-  rangoEdad: string;
+  rangoEdad?: string;
 
   @ApiProperty({ description: 'Porcentaje de descuento (0 a 100)' })
   descuento: number;

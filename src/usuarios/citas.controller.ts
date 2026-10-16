@@ -54,6 +54,13 @@ export class CitasController {
     return this.citasService.findByVeterinario(veterinarioId);
   }
 
+  @Get('mascota/:mascotaId')
+  @ApiOperation({ summary: 'Obtener citas de una mascota específica' })
+  @ApiResponse({ status: 200, type: [GetCitaDto] })
+  findByMascota(@Param('mascotaId') mascotaId: string): GetCitaDto[] {
+    return this.citasService.findByMascota(mascotaId);
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar/Reprogramar una cita por ID' })
   @ApiResponse({ status: 200, type: GetCitaDto })

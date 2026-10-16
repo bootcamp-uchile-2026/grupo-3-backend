@@ -1,98 +1,176 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# PetLove — Aplicación Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST del e-commerce **PetLove**, una plataforma que combina una tienda de productos para mascotas con la gestión de una clínica veterinaria (citas, consultas, recetas y exámenes).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Proyecto desarrollado por el Grupo 3 en el Taller de Bootcamps (DCC, Universidad de Chile), disciplina Backend.
 
-## Description
+## Tecnologías
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| | |
+|---|---|
+| **Framework** | NestJS (TypeScript) |
+| **Validación** | `class-validator` y `class-transformer` |
+| **Documentación de la API** | OpenAPI / Swagger (`@nestjs/swagger`) |
+| **Contenedores** | Docker (imagen multi-stage `node:24-alpine`) y Docker Compose |
+| **Base de datos** | MySQL 8 (contenedor) |
+| **Despliegue** | AWS EC2 (Ubuntu Server 24.04) |
 
-## Project setup
+## Módulos de la API
 
-```bash
-$ npm install
-```
+Todas las rutas usan el prefijo global `/api/v1`.
 
-## Compile and run the project
+| Módulo | Recursos | Ruta base |
+|---|---|---|
+| **Usuarios** | Dueños, veterinarios, mascotas, citas y direcciones | `/api/v1/usuarios` |
+| **Catálogo** | Productos, servicios, reseñas, carrito y pedidos | `/api/v1/catalogo` |
+| **Gestión clínica** | Consultas, recetas, órdenes de examen y exámenes | `/api/v1/gestion-clinica` |
 
-```bash
-# development
-$ npm run start
+El detalle de cada operación, sus DTOs de entrada y salida y sus validaciones se encuentra en la documentación Swagger.
 
-# watch mode
-$ npm run start:dev
+> **Estado actual (Hito 2):** los servicios funcionan con implementaciones dummy y almacenamiento en memoria. Los datos se pierden al reiniciar la aplicación. La persistencia en MySQL mediante TypeORM se incorporará en el Hito 3.
 
-# production mode
-$ npm run start:prod
-```
+## Requisitos
 
-## Run tests
+- **Ejecución local:** Node.js 24 y npm.
+- **Ejecución con Docker:** Docker y Docker Compose.
+
+## Ejecución local (desarrollo)
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
+npm run start:dev
 ```
 
-## Deployment
+La API queda disponible en `http://localhost:3000/api/v1` y la documentación Swagger en `http://localhost:3000/api`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Scripts disponibles
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Comando | Descripción |
+|---|---|
+| `npm run start:dev` | Ejecuta la aplicación en modo desarrollo, con recarga automática |
+| `npm run build` | Compila el proyecto en la carpeta `dist` |
+| `npm run start:prod` | Ejecuta la versión compilada |
+| `npm run lint` | Revisa el código con ESLint |
+| `npm run test` | Ejecuta las pruebas unitarias |
+
+## Ejecución con Docker
+
+1. Copiar el archivo de variables de entorno y definir las contraseñas:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Construir y levantar la API y la base de datos:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. Verificar que ambos servicios estén activos (`petlove-db` debe aparecer como `healthy`):
+
+   ```bash
+   docker compose ps
+   ```
+
+La API queda disponible en `http://localhost:3000/api/v1`.
+
+### Comandos útiles
+
+| Comando | Descripción |
+|---|---|
+| `docker compose logs -f api` | Ver los logs de la API en tiempo real |
+| `docker compose down` | Detener y eliminar los contenedores (los datos de MySQL se conservan en el volumen) |
+| `docker compose down -v` | Detener todo y **eliminar** el volumen de datos de MySQL |
+
+### Arquitectura de contenedores
+
+- **`api`:** construida desde el `Dockerfile` del proyecto. Publica el puerto 3000.
+- **`db`:** MySQL 8. No publica su puerto hacia el host; la API se conecta a través de la red interna de Docker usando el nombre del servicio (`db:3306`). Los datos se almacenan en el volumen `mysql-data`.
+- La API inicia solo cuando la base de datos responde al healthcheck.
+
+## Variables de entorno
+
+Definidas en `.env` (a partir de `.env.example`). El archivo `.env` no se versiona.
+
+| Variable | Descripción |
+|---|---|
+| `API_PORT` | Puerto publicado de la API en el host (por defecto 3000) |
+| `MYSQL_DATABASE` | Nombre de la base de datos |
+| `MYSQL_USER` | Usuario de la base de datos usado por la API |
+| `MYSQL_PASSWORD` | Contraseña del usuario de la base de datos |
+| `MYSQL_ROOT_PASSWORD` | Contraseña del administrador de MySQL |
+
+Además, `compose.yaml` entrega a la API las variables `PORT`, `NODE_ENV`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`, que se utilizarán al conectar TypeORM.
+
+## Documentación de la API (Swagger)
+
+| | |
+|---|---|
+| **Interfaz Swagger** | `/api` |
+| **Especificación OpenAPI (JSON)** | `/api-json` |
+
+## Convenciones de la API
+
+### Validaciones
+
+Se aplica un `ValidationPipe` global con `whitelist`, `forbidNonWhitelisted` y `transform`. Las peticiones con campos no definidos en el DTO o con valores inválidos se rechazan con un error 400 que detalla cada campo.
+
+### Trazabilidad
+
+- Cada petición recibe un identificador único, devuelto en el header **`X-Request-Id`**. Si el cliente envía este header, se reutiliza su valor.
+- Cada petición se registra en los logs al finalizar, con su identificador, método, ruta, código de respuesta y tiempo de ejecución:
+
+  ```
+  LOG  [HTTP] [0b429233-68e3-49ca-9cf6-364d9d2a1993] GET /api/v1/catalogo/productos 200 - 9ms
+  WARN [HTTP] [23c0d221-da2e-4d0e-bf10-58938e5dfda9] GET /api/v1/catalogo/productos?limit=-5 400 - 4ms
+  ```
+
+- En el Hito 2, los middlewares de trazabilidad se aplican a las rutas de productos y dueños.
+
+### Formato de errores
+
+Un filtro global de excepciones entrega todas las respuestas de error con el mismo formato, incluyendo el identificador de la petición:
+
+```json
+{
+  "statusCode": 404,
+  "error": "Recurso no encontrado",
+  "message": "Producto con ID no-existe-123 no encontrado",
+  "path": "/api/v1/catalogo/productos/no-existe-123",
+  "timestamp": "2026-10-16T02:07:03.825Z",
+  "requestId": "72a8768f-f4ca-47f8-8a3e-d2fc94613fbe"
+}
+```
+
+Los errores inesperados responden 500 con un mensaje genérico; el detalle técnico se registra solo en los logs.
+
+## Ambiente desplegado
+
+| | |
+|---|---|
+| **Proveedor** | AWS EC2 (Ubuntu Server 24.04, t3.small, región us-east-2) |
+| **URL base de la API** | `http://18.226.214.170:3000/api/v1` |
+| **Documentación Swagger** | `http://18.226.214.170:3000/api` |
+| **Base de datos** | MySQL 8 en contenedor, sin exposición pública |
+
+El servidor ejecuta la aplicación con Docker Compose. Para actualizar el despliegue a una nueva versión:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cd ~/grupo-3-backend
+git fetch --all --tags
+git checkout <tag-o-rama>
+docker compose up -d --build
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Modelo de datos
 
-## Resources
+La primera versión del modelo de datos, con su diagrama entidad-relación, las decisiones de normalización y las mejoras planificadas, se encuentra en [docs/modelo-datos.md](docs/modelo-datos.md).
 
-Check out a few resources that may come in handy when working with NestJS:
+## Flujo de trabajo con Git
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- **`main`:** versiones entregadas. Cada entrega se identifica con un tag (`Hito-1`, `Hito-2`, …).
+- **`develop`:** rama de integración.
+- **`feature/*`, `fix/*`, `docs/*`, `chore/*`:** ramas de trabajo, creadas desde `develop` e integradas mediante Pull Request.
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Flujo: rama de trabajo → PR a `develop` → pruebas → PR de `develop` a `main` → tag de la entrega.

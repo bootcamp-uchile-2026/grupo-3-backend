@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DuenioMascota } from './entities/duenio.entity';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
+import { calcularEdad } from '../common/utils/date.utils';
 
 @Injectable()
 export class DueniosService {
@@ -11,6 +12,7 @@ export class DueniosService {
     const newDuenio: DuenioMascota = {
       id: `duenio-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createDuenioDto,
+      fechaNacimiento: new Date(createDuenioDto.fechaNacimiento),
     };
     this.duenios.push(newDuenio);
     return this.mapToGetDto(newDuenio);
@@ -42,9 +44,12 @@ export class DueniosService {
     if (duenioIndex === -1) {
       throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
     }
-    const updatedDuenio = {
+    const updatedDuenio: DuenioMascota = {
       ...this.duenios[duenioIndex],
       ...updateDuenioDto,
+      fechaNacimiento: updateDuenioDto.fechaNacimiento
+        ? new Date(updateDuenioDto.fechaNacimiento)
+        : this.duenios[duenioIndex].fechaNacimiento,
     };
     this.duenios[duenioIndex] = updatedDuenio;
     return this.mapToGetDto(updatedDuenio);
@@ -60,8 +65,10 @@ export class DueniosService {
   }
 
   private mapToGetDto(duenio: DuenioMascota): GetDuenioDto {
-    const dto = { ...duenio };
-    delete dto.password;
-    return dto;
+    const { password, ...resto } = duenio;
+    return {
+      ...resto,
+      edad: calcularEdad(duenio.fechaNacimiento),
+    };
   }
 }

@@ -10,8 +10,8 @@ export abstract class Persona {
   @ApiProperty({ description: 'Apellidos de la persona' })
   apellidos: string;
 
-  @ApiProperty({ description: 'Edad de la persona' })
-  edad: number;
+  @ApiProperty({ description: 'Fecha de nacimiento de la persona' })
+  fechaNacimiento: Date;
 
   @ApiProperty({ description: 'Dirección física' })
   direccion: string;

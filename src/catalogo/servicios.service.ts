@@ -71,7 +71,7 @@ export class ServiciosService {
       marca: servicio.marca,
       precio: servicio.precio,
       especie: servicio.especie,
-      rangoEdad: servicio.rangoEdad,
+      rangoEdad: servicio.rangoEdad ?? 'Todos',
       descuento: servicio.descuento,
       cantidad: servicio.cantidad,
       fichaTecnica: servicio.fichaTecnica,

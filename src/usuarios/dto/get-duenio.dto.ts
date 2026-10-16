@@ -13,7 +13,16 @@ export class GetDuenioDto {
   @ApiProperty({ description: 'Apellidos del dueño', example: 'Pérez' })
   apellidos: string;
 
-  @ApiProperty({ description: 'Edad del dueño', example: 35 })
+  @ApiProperty({
+    description: 'Fecha de nacimiento del dueño',
+    example: '1990-05-15T00:00:00.000Z',
+  })
+  fechaNacimiento: Date;
+
+  @ApiProperty({
+    description: 'Edad calculada del dueño en años',
+    example: 36,
+  })
   edad: number;
 
   @ApiProperty({

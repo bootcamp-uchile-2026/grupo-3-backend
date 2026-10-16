@@ -15,6 +15,12 @@ export class CatalogoController {
     return this.catalogoService.findAll();
   }
 
+  @Get('categorias')
+  @ApiOperation({ summary: 'Obtener categorías y especies destacadas para el Home' })
+  findCategorias() {
+    return this.catalogoService.findCategoriasDestacadas();
+  }
+
   @Get('compatible')
   @ApiOperation({
     summary: 'Obtener catálogo filtrado por compatibilidad de la mascota',

@@ -1,12 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common'; // <--- 1. Importar ValidationPipe
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+
+  app.enableCors();
+
   // Prefijo global para las APIs
   app.setGlobalPrefix('api/v1');
+
+  // 2. Activamos ValidationPipe global con las 3 opciones de la clase
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
+  // Filtro global para respuestas de error uniformes
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
