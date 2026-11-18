@@ -34,7 +34,12 @@ export class CreateMascotaDto {
     description: 'Fecha de nacimiento de la mascota (ISO o YYYY-MM-DD)',
     example: '2020-05-15',
   })
-  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsDateString(
+    {},
+    {
+      message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)',
+    },
+  )
   fechaNacimiento: string | Date;
 
   @ApiProperty({

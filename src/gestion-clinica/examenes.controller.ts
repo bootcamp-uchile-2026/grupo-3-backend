@@ -5,6 +5,7 @@ import { CreateOrdenExamenDto } from './dto/create-orden-examen.dto';
 import { CreateExamenDto } from './dto/create-examen.dto';
 import { GetOrdenExamenDto } from './dto/get-orden-examen.dto';
 import { GetExamenDto } from './dto/get-examen.dto';
+import { UpdateExamenDto } from './dto/update-examen.dto';
 
 @ApiTags('Gestión de Clínica - Órdenes y Exámenes')
 @Controller('gestion-clinica/examenes')
@@ -80,7 +81,7 @@ export class ExamenesController {
   @ApiResponse({ status: 200, type: GetExamenDto })
   updateExamen(
     @Param('id') id: string,
-    @Body() updateExamenDto: Partial<CreateExamenDto>,
+    @Body() updateExamenDto: UpdateExamenDto,
   ): GetExamenDto {
     return this.examenesService.updateExamen(id, updateExamenDto);
   }

@@ -58,7 +58,8 @@ export class GetVeterinarioDto {
 
   @ApiProperty({
     description: 'Descripción profesional o perfil del veterinario',
-    example: 'Especialista en animales pequeños con más de 10 años de experiencia',
+    example:
+      'Especialista en animales pequeños con más de 10 años de experiencia',
     required: false,
   })
   descripcionVeterinario?: string;

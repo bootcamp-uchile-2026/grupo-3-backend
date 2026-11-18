@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { RecursoNoEncontradoException } from '../common/exceptions/recurso-no-encontrado.exception';
 import { Producto } from './entities/producto.entity';
 import { Resena } from './entities/resena.entity';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -7,6 +6,10 @@ import { GetProductoDto } from './dto/get-producto.dto';
 import { FilterProductoDto } from './dto/filter-producto.dto';
 import { CreateResenaDto } from './dto/create-resena.dto';
 import { GetResenaDto } from './dto/get-resena.dto';
+import { UpdateProductoDto } from './dto/update-producto.dto';
+import { StockInsuficienteError } from 'src/common/errors/stock-insuficiente.error';
+import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ProductosService {
@@ -111,14 +114,13 @@ export class ProductosService {
           break;
         case 'calificacion':
           result.sort(
-            (a, b) => (b.calificacionPromedio || 0) - (a.calificacionPromedio || 0),
+            (a, b) =>
+              (b.calificacionPromedio || 0) - (a.calificacionPromedio || 0),
           );
           break;
         case 'popularidad':
         default:
-          result.sort(
-            (a, b) => (b.totalResenas || 0) - (a.totalResenas || 0),
-          );
+          result.sort((a, b) => (b.totalResenas || 0) - (a.totalResenas || 0));
           break;
       }
     }
@@ -132,6 +134,9 @@ export class ProductosService {
   }
 
   findOfertas(limit: number = 8): GetProductoDto[] {
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
     return this.productos
       .filter((p) => (p.descuento ?? 0) > 0)
       .slice(0, limit)
@@ -139,6 +144,9 @@ export class ProductosService {
   }
 
   findRelacionados(id: string, limit: number = 4): GetProductoDto[] {
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
     const target = this.productos.find((p) => p.id === id);
     if (!target) {
       return [];
@@ -154,15 +162,16 @@ export class ProductosService {
   }
 
   findSugeridos(limit: number = 4): GetProductoDto[] {
-    return this.productos
-      .slice(0, limit)
-      .map((p) => this.mapToGetDto(p));
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
+    return this.productos.slice(0, limit).map((p) => this.mapToGetDto(p));
   }
 
   findOne(id: string): GetProductoDto {
     const producto = this.productos.find((p) => p.id === id);
     if (!producto) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(producto);
   }
@@ -170,18 +179,15 @@ export class ProductosService {
   findOneEntity(id: string): Producto {
     const producto = this.productos.find((p) => p.id === id);
     if (!producto) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     return producto;
   }
 
-  update(
-    id: string,
-    updateProductoDto: Partial<CreateProductoDto>,
-  ): GetProductoDto {
+  update(id: string, updateProductoDto: UpdateProductoDto): GetProductoDto {
     const prodIndex = this.productos.findIndex((p) => p.id === id);
     if (prodIndex === -1) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     const updatedProd: Producto = {
       ...this.productos[prodIndex],
@@ -194,7 +200,7 @@ export class ProductosService {
   remove(id: string): { message: string } {
     const prodIndex = this.productos.findIndex((p) => p.id === id);
     if (prodIndex === -1) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     this.productos.splice(prodIndex, 1);
     this.resenas = this.resenas.filter((r) => r.productoId !== id);
@@ -203,11 +209,13 @@ export class ProductosService {
 
   decreaseStock(id: string, qty: number): void {
     const producto = this.findOneEntity(id);
-    if (producto.stock < qty) {
+    if (producto.stock < qty)
+      throw new StockInsuficienteError(producto.stock, producto.nombre);
+    /*if (producto.stock < qty) {
       throw new Error(
         `Stock insuficiente para el producto ${producto.nombre}. Disponible: ${producto.stock}, Solicitado: ${qty}`,
       );
-    }
+    }*/
     producto.stock -= qty;
   }
 
@@ -227,10 +235,17 @@ export class ProductosService {
     this.resenas.push(newResena);
 
     // Recalcular promedio de estrellas y total
-    const productoResenas = this.resenas.filter((r) => r.productoId === productoId);
+    const productoResenas = this.resenas.filter(
+      (r) => r.productoId === productoId,
+    );
     producto.totalResenas = productoResenas.length;
-    const sum = productoResenas.reduce((acc, curr) => acc + curr.calificacion, 0);
-    producto.calificacionPromedio = Number((sum / productoResenas.length).toFixed(1));
+    const sum = productoResenas.reduce(
+      (acc, curr) => acc + curr.calificacion,
+      0,
+    );
+    producto.calificacionPromedio = Number(
+      (sum / productoResenas.length).toFixed(1),
+    );
 
     return this.mapToResenaDto(newResena);
   }

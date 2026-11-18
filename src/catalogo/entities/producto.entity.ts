@@ -2,10 +2,16 @@ import { ProductoServicio } from './producto-servicio.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class Producto extends ProductoServicio {
-  @ApiProperty({ description: 'Código único de inventario (SKU)', example: '78796584755' })
+  @ApiProperty({
+    description: 'Código único de inventario (SKU)',
+    example: '78796584755',
+  })
   sku: string;
 
-  @ApiProperty({ description: 'Stock actual disponible en inventario', example: 50 })
+  @ApiProperty({
+    description: 'Stock actual disponible en inventario',
+    example: 50,
+  })
   stock: number;
 
   @ApiProperty({
@@ -16,7 +22,8 @@ export class Producto extends ProductoServicio {
   imagenes: string[];
 
   @ApiProperty({
-    description: 'Categoría principal (ej. Alimento, Accesorio, Salud, Farmacia)',
+    description:
+      'Categoría principal (ej. Alimento, Accesorio, Salud, Farmacia)',
     example: 'Salud y bienestar',
   })
   categoria: string;
@@ -29,7 +36,8 @@ export class Producto extends ProductoServicio {
   subcategoria?: string;
 
   @ApiProperty({
-    description: 'Material de fabricación (ej. Acero, Cerámica, Plástico, Silicona)',
+    description:
+      'Material de fabricación (ej. Acero, Cerámica, Plástico, Silicona)',
     example: 'Cerámica',
     required: false,
   })
@@ -51,7 +59,11 @@ export class Producto extends ProductoServicio {
 
   @ApiProperty({
     description: 'Especificaciones técnicas clave',
-    example: { capacidad: '450 ml', medidas: '14 x 9', diseno: 'Elevado y ergonómico' },
+    example: {
+      capacidad: '450 ml',
+      medidas: '14 x 9',
+      diseno: 'Elevado y ergonómico',
+    },
     required: false,
   })
   fichaTecnicaDetalle?: Record<string, string>;

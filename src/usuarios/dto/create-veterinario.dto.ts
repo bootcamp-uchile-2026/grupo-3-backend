@@ -20,14 +20,21 @@ export class CreateVeterinarioDto {
 
   @ApiProperty({ description: 'Apellidos del veterinario', example: 'Gómez' })
   @IsString({ message: 'Los apellidos deben ser un texto' })
-  @Length(2, 50, { message: 'Los apellidos deben tener entre 2 y 50 caracteres' })
+  @Length(2, 50, {
+    message: 'Los apellidos deben tener entre 2 y 50 caracteres',
+  })
   apellidos: string;
 
   @ApiProperty({
     description: 'Fecha de nacimiento del veterinario (ISO o YYYY-MM-DD)',
     example: '1985-03-20',
   })
-  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsDateString(
+    {},
+    {
+      message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)',
+    },
+  )
   fechaNacimiento: string | Date;
 
   @ApiProperty({ description: 'Dirección física', example: 'Calle Falsa 123' })
@@ -83,7 +90,8 @@ export class CreateVeterinarioDto {
 
   @ApiProperty({
     description: 'Descripción profesional o perfil del veterinario',
-    example: 'Especialista en animales pequeños con más de 10 años de experiencia',
+    example:
+      'Especialista en animales pequeños con más de 10 años de experiencia',
     required: false,
   })
   @IsOptional()

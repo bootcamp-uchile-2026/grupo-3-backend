@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateConsultaDto {
   @ApiProperty({
@@ -14,7 +19,13 @@ export class CreateConsultaDto {
     description: 'Fecha de la consulta médica',
     example: '2026-08-20T18:00:00.000Z',
   })
-  @IsDateString({}, { message: 'La fecha de la consulta debe ser una fecha válida en formato ISO' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'La fecha de la consulta debe ser una fecha válida en formato ISO',
+    },
+  )
   fechaConsulta: string | Date;
 
   @ApiProperty({
@@ -23,7 +34,13 @@ export class CreateConsultaDto {
     required: false,
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de la próxima consulta debe ser una fecha válida en formato ISO' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'La fecha de la próxima consulta debe ser una fecha válida en formato ISO',
+    },
+  )
   fechaProxConsulta?: string | Date;
 
   @ApiProperty({
@@ -32,7 +49,13 @@ export class CreateConsultaDto {
     required: false,
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de la próxima vacuna debe ser una fecha válida en formato ISO' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'La fecha de la próxima vacuna debe ser una fecha válida en formato ISO',
+    },
+  )
   fechaProxVacuna?: string | Date;
 
   @ApiProperty({
@@ -41,7 +64,13 @@ export class CreateConsultaDto {
     required: false,
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de los próximos exámenes debe ser una fecha válida en formato ISO' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'La fecha de los próximos exámenes debe ser una fecha válida en formato ISO',
+    },
+  )
   fechaProxExamenes?: string | Date;
 
   @ApiProperty({

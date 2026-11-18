@@ -16,14 +16,21 @@ export class CreateDuenioDto {
 
   @ApiProperty({ description: 'Apellidos del dueño', example: 'Pérez' })
   @IsString({ message: 'Los apellidos deben ser un texto' })
-  @Length(2, 50, { message: 'Los apellidos deben tener entre 2 y 50 caracteres' })
+  @Length(2, 50, {
+    message: 'Los apellidos deben tener entre 2 y 50 caracteres',
+  })
   apellidos: string;
 
   @ApiProperty({
     description: 'Fecha de nacimiento del dueño (YYYY-MM-DD)',
     example: '1990-05-15',
   })
-  @IsDateString({}, { message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)' })
+  @IsDateString(
+    {},
+    {
+      message: 'La fecha de nacimiento debe ser una fecha válida (YYYY-MM-DD)',
+    },
+  )
   fechaNacimiento: string | Date;
 
   @ApiProperty({

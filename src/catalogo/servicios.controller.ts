@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ServiciosService } from './servicios.service';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { GetServicioDto } from './dto/get-servicio.dto';
+import { UpdateServicioDto } from './dto/update-servicio.dto';
 
 @ApiTags('Catálogo - Servicios')
 @Controller('catalogo/servicios')
@@ -43,7 +44,7 @@ export class ServiciosController {
   @ApiResponse({ status: 200, type: GetServicioDto })
   update(
     @Param('id') id: string,
-    @Body() updateServicioDto: Partial<CreateServicioDto>,
+    @Body() updateServicioDto: UpdateServicioDto,
   ): GetServicioDto {
     return this.serviciosService.update(id, updateServicioDto);
   }

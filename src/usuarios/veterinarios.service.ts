@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Veterinario } from './entities/veterinario.entity';
 import { CreateVeterinarioDto } from './dto/create-veterinario.dto';
 import { GetVeterinarioDto } from './dto/get-veterinario.dto';
 import { calcularEdad } from '../common/utils/date.utils';
+import { UpdateVeterinarioDto } from './dto/update-veterinario.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class VeterinariosService {
@@ -25,7 +27,9 @@ export class VeterinariosService {
   findOne(id: string): GetVeterinarioDto {
     const veterinario = this.veterinarios.find((v) => v.id === id);
     if (!veterinario) {
-      throw new NotFoundException(`Veterinario con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(
+        `Veterinario con ID ${id} no encontrado`,
+      );
     }
     return this.mapToGetDto(veterinario);
   }
@@ -33,18 +37,22 @@ export class VeterinariosService {
   findOneEntity(id: string): Veterinario {
     const veterinario = this.veterinarios.find((v) => v.id === id);
     if (!veterinario) {
-      throw new NotFoundException(`Veterinario con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(
+        `Veterinario con ID ${id} no encontrado`,
+      );
     }
     return veterinario;
   }
 
   update(
     id: string,
-    updateVeterinarioDto: Partial<CreateVeterinarioDto>,
+    updateVeterinarioDto: UpdateVeterinarioDto,
   ): GetVeterinarioDto {
     const vetIndex = this.veterinarios.findIndex((v) => v.id === id);
     if (vetIndex === -1) {
-      throw new NotFoundException(`Veterinario con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(
+        `Veterinario con ID ${id} no encontrado`,
+      );
     }
     const updatedVet: Veterinario = {
       ...this.veterinarios[vetIndex],
@@ -60,7 +68,9 @@ export class VeterinariosService {
   remove(id: string): { message: string } {
     const vetIndex = this.veterinarios.findIndex((v) => v.id === id);
     if (vetIndex === -1) {
-      throw new NotFoundException(`Veterinario con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(
+        `Veterinario con ID ${id} no encontrado`,
+      );
     }
     this.veterinarios.splice(vetIndex, 1);
     return { message: `Veterinario con ID ${id} eliminado correctamente` };

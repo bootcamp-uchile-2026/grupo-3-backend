@@ -17,14 +17,18 @@ export class DireccionesController {
   constructor(private readonly direccionesService: DireccionesService) {}
 
   @Get(':usuarioId/direcciones')
-  @ApiOperation({ summary: 'Obtener todas las direcciones guardadas de un usuario' })
+  @ApiOperation({
+    summary: 'Obtener todas las direcciones guardadas de un usuario',
+  })
   @ApiResponse({ status: 200, type: [GetDireccionDto] })
   findByUsuario(@Param('usuarioId') usuarioId: string): GetDireccionDto[] {
     return this.direccionesService.findByUsuario(usuarioId);
   }
 
   @Post(':usuarioId/direcciones')
-  @ApiOperation({ summary: 'Agregar una nueva dirección a la libreta del usuario' })
+  @ApiOperation({
+    summary: 'Agregar una nueva dirección a la libreta del usuario',
+  })
   @ApiResponse({ status: 201, type: GetDireccionDto })
   create(
     @Param('usuarioId') usuarioId: string,

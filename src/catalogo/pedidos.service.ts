@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Pedido, ItemPedido } from './entities/pedido.entity';
 import {
   CreatePedidoDto,
@@ -11,6 +7,9 @@ import {
 } from './dto/pedido.dto';
 import { CarritoService } from './carrito.service';
 import { ProductosService } from './productos.service';
+import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
+import { StockInsuficienteError } from 'src/common/errors/stock-insuficiente.error';
 
 @Injectable()
 export class PedidosService {
@@ -21,19 +20,27 @@ export class PedidosService {
     private readonly productosService: ProductosService,
   ) {}
 
-  create(dto: CreatePedidoDto): GetPedidoDto {
+  create(carritoId: string, dto: CreatePedidoDto): GetPedidoDto {
     if (!dto.aceptaTerminos) {
-      throw new BadRequestException('Debes aceptar los términos y condiciones para continuar.');
+      throw new ReglaNegocioError(
+        'Debes aceptar los términos y condiciones para continuar.',
+      );
     }
 
-    const usuarioKey = dto.usuarioId || 'invitado';
-    const carrito = this.carritoService.getCarrito(usuarioKey);
+    const carrito = this.carritoService.obtener(carritoId);
 
-    if (!carrito.items || carrito.items.length === 0) {
-      throw new BadRequestException('El carrito de compras está vacío.');
+    if (carrito.items.length === 0) {
+      throw new ReglaNegocioError('El carrito de compras está vacío.');
     }
 
     // 1. Validar y descontar stock de cada producto
+    for (const item of carrito.items) {
+      const producto = this.productosService.findOneEntity(item.productoId);
+      if (producto.stock < item.cantidad) {
+        throw new StockInsuficienteError(producto.stock, producto.nombre);
+      }
+    }
+
     for (const item of carrito.items) {
       this.productosService.decreaseStock(item.productoId, item.cantidad);
     }
@@ -41,11 +48,15 @@ export class PedidosService {
     // 2. Determinar costo de envío y dirección
     const esDelivery = dto.tipoEntrega === 'EnvioNormal';
     const costoEnvio = esDelivery ? 3990 : 0;
-    const tiempoEstimado = esDelivery ? '2 a 3 días hábiles' : 'Retiro inmediato en horario hábil';
+    const tiempoEstimado = esDelivery
+      ? '2 a 3 días hábiles'
+      : 'Retiro inmediato en horario hábil';
 
     let direccionCompleta = dto.direccion;
     if (esDelivery && dto.direccion) {
-      const depto = dto.departamentoOficina ? `, ${dto.departamentoOficina}` : '';
+      const depto = dto.departamentoOficina
+        ? `, ${dto.departamentoOficina}`
+        : '';
       const com = dto.comuna ? `, ${dto.comuna}` : '';
       const reg = dto.region ? `, ${dto.region}` : '';
       direccionCompleta = `${dto.direccion}${depto}${com}${reg}`;
@@ -62,11 +73,10 @@ export class PedidosService {
     }));
 
     // 4. Calcular total final
-    const totalFinal = carrito.subtotal - (carrito.descuentoCupon || 0) + costoEnvio;
+    const totalFinal = carrito.subtotal + costoEnvio;
 
     const nuevoPedido: Pedido = {
-      id: `ORD-${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
-      usuarioId: dto.usuarioId,
+      id: this.generarNumeroOrden(),
       nombreCliente: dto.nombre,
       apellidosCliente: dto.apellidos,
       correoElectronico: dto.correoElectronico,
@@ -75,13 +85,15 @@ export class PedidosService {
       rutDocumento: dto.rutDocumento,
       tipoEntrega: dto.tipoEntrega,
       direccionEntrega: esDelivery ? direccionCompleta : undefined,
-      sucursalRetiro: !esDelivery ? (dto.sucursalRetiro || 'Av. Providencia 2556') : undefined,
+      sucursalRetiro: !esDelivery
+        ? dto.sucursalRetiro || 'Av. Providencia 2556'
+        : undefined,
       tiempoEstimadoEntrega: tiempoEstimado,
       metodoPago: dto.metodoPago,
       items: itemsPedido,
       subtotal: carrito.subtotal,
       costoEnvio,
-      descuento: carrito.descuentoCupon || 0,
+      descuento: carrito.descuentoCupon,
       total: totalFinal,
       estadoPedido: 'Confirmado',
       fechaCreacion: new Date(),
@@ -90,7 +102,7 @@ export class PedidosService {
     this.pedidos.push(nuevoPedido);
 
     // 5. Vaciar el carrito tras compra exitosa
-    this.carritoService.vaciarCarrito(usuarioKey);
+    this.carritoService.cerrar(carritoId);
 
     return this.mapToDto(nuevoPedido);
   }
@@ -98,15 +110,11 @@ export class PedidosService {
   findOne(id: string): GetPedidoDto {
     const pedido = this.pedidos.find((p) => p.id === id);
     if (!pedido) {
-      throw new NotFoundException(`Pedido con orden ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(
+        `Pedido con orden ${id} no encontrado`,
+      );
     }
     return this.mapToDto(pedido);
-  }
-
-  findByUsuario(usuarioId: string): GetPedidoDto[] {
-    return this.pedidos
-      .filter((p) => p.usuarioId === usuarioId)
-      .map((p) => this.mapToDto(p));
   }
 
   getSeguimiento(id: string): SeguimientoPedidoDto {
@@ -116,22 +124,38 @@ export class PedidosService {
       numeroOrden: pedido.id,
       estadoActual: pedido.estadoPedido,
       historialPasos: [
-        { paso: 'Recibido', completado: true, fecha: pedido.fechaCreacion.toISOString() },
-        { paso: 'En preparación', completado: true, fecha: pedido.fechaCreacion.toISOString() },
+        {
+          paso: 'Recibido',
+          completado: true,
+          fecha: pedido.fechaCreacion.toISOString(),
+        },
+        {
+          paso: 'En preparación',
+          completado: true,
+          fecha: pedido.fechaCreacion.toISOString(),
+        },
         { paso: 'En camino', completado: false, fecha: null },
         { paso: 'Entregado', completado: false, fecha: null },
       ],
     };
   }
 
+  private generarNumeroOrden(): string {
+    let id: string;
+    do {
+      id = `ORD-${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 90 + 10)}`;
+    } while (this.pedidos.some((p) => p.id === id));
+    return id;
+  }
+
   private mapToDto(pedido: Pedido): GetPedidoDto {
     return {
       id: pedido.id,
-      usuarioId: pedido.usuarioId,
       nombreCliente: `${pedido.nombreCliente} ${pedido.apellidosCliente}`,
       correoElectronico: pedido.correoElectronico,
       telefono: pedido.telefono,
-      modoEntrega: pedido.tipoEntrega === 'EnvioNormal' ? 'Delivery' : 'Retiro en tienda',
+      modoEntrega:
+        pedido.tipoEntrega === 'EnvioNormal' ? 'Delivery' : 'Retiro en tienda',
       tiempoEstimadoEntrega: pedido.tiempoEstimadoEntrega,
       direccionEntrega: pedido.direccionEntrega,
       sucursalRetiro: pedido.sucursalRetiro,

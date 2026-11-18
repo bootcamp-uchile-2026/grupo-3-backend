@@ -42,13 +42,17 @@ export class CreateProductoDto {
   @Min(0, { message: 'El precio original no puede ser negativo' })
   precioOriginal?: number;
 
-  @ApiProperty({ description: 'Stock inicial disponible en inventario', example: 50 })
+  @ApiProperty({
+    description: 'Stock inicial disponible en inventario',
+    example: 50,
+  })
   @IsInt({ message: 'El stock debe ser un número entero' })
   @Min(0, { message: 'El stock no puede ser negativo' })
   stock: number;
 
   @ApiProperty({
-    description: 'Galería de imágenes del producto (mínimo una para la portada)',
+    description:
+      'Galería de imágenes del producto (mínimo una para la portada)',
     type: [String],
     example: [
       'https://example.com/comedero-principal.jpg',
@@ -82,7 +86,8 @@ export class CreateProductoDto {
   subcategoria?: string;
 
   @ApiProperty({
-    description: 'Especie compatible (ej. Gato, Perro, Aves, Reptiles, Roedores, Todos)',
+    description:
+      'Especie compatible (ej. Gato, Perro, Aves, Reptiles, Roedores, Todos)',
     example: 'Gato',
   })
   @IsString({ message: 'La especie debe ser un texto' })
@@ -90,7 +95,8 @@ export class CreateProductoDto {
   especie: string;
 
   @ApiProperty({
-    description: 'Etapa de vida recomendada (ej. En crecimiento, Adulta, Senior, Todos)',
+    description:
+      'Etapa de vida recomendada (ej. En crecimiento, Adulta, Senior, Todos)',
     example: 'Adulta',
     required: false,
   })
@@ -99,7 +105,8 @@ export class CreateProductoDto {
   rangoEdad?: string;
 
   @ApiProperty({
-    description: 'Material de fabricación (ej. Acero, Cerámica, Plástico, Silicona)',
+    description:
+      'Material de fabricación (ej. Acero, Cerámica, Plástico, Silicona)',
     example: 'Cerámica',
     required: false,
   })
@@ -109,7 +116,8 @@ export class CreateProductoDto {
 
   @ApiProperty({
     description: 'Descripción detallada del producto',
-    example: 'Comedero elevado compacto de 450 ml para favorecer una postura saludable.',
+    example:
+      'Comedero elevado compacto de 450 ml para favorecer una postura saludable.',
   })
   @IsString({ message: 'La descripción debe ser un texto' })
   @IsNotEmpty({ message: 'La descripción no puede estar vacía' })

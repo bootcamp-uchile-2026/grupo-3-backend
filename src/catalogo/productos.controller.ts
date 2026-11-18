@@ -8,6 +8,8 @@ import {
   Put,
   Delete,
   Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ProductosService } from './productos.service';
@@ -16,11 +18,12 @@ import { GetProductoDto } from './dto/get-producto.dto';
 import { FilterProductoDto } from './dto/filter-producto.dto';
 import { CreateResenaDto } from './dto/create-resena.dto';
 import { GetResenaDto } from './dto/get-resena.dto';
+import { UpdateProductoDto } from './dto/update-producto.dto';
 
 @ApiTags('Catálogo - Productos')
 @Controller('catalogo/productos')
 export class ProductosController {
-  constructor(private readonly productosService: ProductosService) { }
+  constructor(private readonly productosService: ProductosService) {}
 
   @Post()
   @ApiOperation({ summary: 'Agregar un nuevo producto al catálogo' })
@@ -39,38 +42,49 @@ export class ProductosController {
   }
 
   @Get('ofertas')
-  @ApiOperation({ summary: 'Obtener productos en oferta para la página principal' })
+  @ApiOperation({
+    summary: 'Obtener productos en oferta para la página principal',
+  })
   @ApiResponse({ status: 200, type: [GetProductoDto] })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  findOfertas(@Query('limit') limit?: number): GetProductoDto[] {
-    return this.productosService.findOfertas(limit ? Number(limit) : 8);
+  findOfertas(
+    @Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number,
+  ): GetProductoDto[] {
+    return this.productosService.findOfertas(limit);
   }
 
   @Get('sugeridos')
   @ApiOperation({
-    summary: 'Obtener productos sugeridos para cross-selling ("¿Te faltó algo?")',
+    summary:
+      'Obtener productos sugeridos para cross-selling ("¿Te faltó algo?")',
   })
   @ApiResponse({ status: 200, type: [GetProductoDto] })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  findSugeridos(@Query('limit') limit?: number): GetProductoDto[] {
-    return this.productosService.findSugeridos(limit ? Number(limit) : 4);
+  findSugeridos(
+    @Query('limit', new DefaultValuePipe(4), ParseIntPipe) limit: number,
+  ): GetProductoDto[] {
+    return this.productosService.findSugeridos(limit);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener el detalle completo de un producto por ID' })
+  @ApiOperation({
+    summary: 'Obtener el detalle completo de un producto por ID',
+  })
   @ApiResponse({ status: 200, type: GetProductoDto })
   findOne(@Param('id') id: string): GetProductoDto {
     return this.productosService.findOne(id);
   }
 
   @Get(':id/relacionados')
-  @ApiOperation({ summary: 'Obtener productos relacionados para el carrusel de ficha' })
+  @ApiOperation({
+    summary: 'Obtener productos relacionados para el carrusel de ficha',
+  })
   @ApiResponse({ status: 200, type: [GetProductoDto] })
   findRelacionados(
     @Param('id') id: string,
-    @Query('limit') limit?: number,
+    @Query('limit', new DefaultValuePipe(4), ParseIntPipe) limit: number,
   ): GetProductoDto[] {
-    return this.productosService.findRelacionados(id, limit ? Number(limit) : 4);
+    return this.productosService.findRelacionados(id, limit);
   }
 
   @Get(':id/resenas')
@@ -103,7 +117,7 @@ export class ProductosController {
   @ApiResponse({ status: 200, type: GetProductoDto })
   update(
     @Param('id') id: string,
-    @Body() updateProductoDto: Partial<CreateProductoDto>,
+    @Body() updateProductoDto: UpdateProductoDto,
   ): GetProductoDto {
     return this.productosService.update(id, updateProductoDto);
   }
@@ -122,5 +136,4 @@ export class ProductosController {
       terminoRecibido: termino,
     };
   }
-
 }

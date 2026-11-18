@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MascotasService } from './mascotas.service';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { GetMascotaDto } from './dto/get-mascota.dto';
+import { UpdateMascotaDto } from './dto/update-mascota.dto';
 
 @ApiTags('Usuarios - Mascotas (Ficha Clínica)')
 @Controller('usuarios/mascotas')
@@ -50,7 +51,7 @@ export class MascotasController {
   @ApiResponse({ status: 200, type: GetMascotaDto })
   update(
     @Param('id') id: string,
-    @Body() updateMascotaDto: Partial<CreateMascotaDto>,
+    @Body() updateMascotaDto: UpdateMascotaDto,
   ): GetMascotaDto {
     return this.mascotasService.update(id, updateMascotaDto);
   }

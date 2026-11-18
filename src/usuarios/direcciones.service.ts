@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DireccionUsuario } from './entities/direccion.entity';
 import { CreateDireccionDto, GetDireccionDto } from './dto/direccion.dto';
 import { DueniosService } from './duenios.service';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class DireccionesService {
@@ -12,7 +13,9 @@ export class DireccionesService {
   create(usuarioId: string, dto: CreateDireccionDto): GetDireccionDto {
     this.dueniosService.findOne(usuarioId); // Valida existencia del usuario
 
-    const usuarioDirecciones = this.direcciones.filter((d) => d.usuarioId === usuarioId);
+    const usuarioDirecciones = this.direcciones.filter(
+      (d) => d.usuarioId === usuarioId,
+    );
     const esPrimera = usuarioDirecciones.length === 0;
     const esPred = dto.esPredeterminada ?? esPrimera;
 
@@ -49,7 +52,9 @@ export class DireccionesService {
       (d) => d.id === direccionId && d.usuarioId === usuarioId,
     );
     if (!dir) {
-      throw new NotFoundException(`Dirección con ID ${direccionId} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Dirección con ID ${direccionId} no encontrada`,
+      );
     }
 
     this.direcciones
@@ -65,7 +70,9 @@ export class DireccionesService {
       (d) => d.id === direccionId && d.usuarioId === usuarioId,
     );
     if (idx === -1) {
-      throw new NotFoundException(`Dirección con ID ${direccionId} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Dirección con ID ${direccionId} no encontrada`,
+      );
     }
     this.direcciones.splice(idx, 1);
     return { message: 'Dirección eliminada correctamente' };

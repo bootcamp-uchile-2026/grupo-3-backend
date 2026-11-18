@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DuenioMascota } from './entities/duenio.entity';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
 import { calcularEdad } from '../common/utils/date.utils';
+import { UpdateDuenioDto } from './dto/update-duenio.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class DueniosService {
@@ -25,7 +27,7 @@ export class DueniosService {
   findOne(id: string): GetDuenioDto {
     const duenio = this.duenios.find((d) => d.id === id);
     if (!duenio) {
-      throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(duenio);
   }
@@ -34,15 +36,15 @@ export class DueniosService {
   findOneEntity(id: string): DuenioMascota {
     const duenio = this.duenios.find((d) => d.id === id);
     if (!duenio) {
-      throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     return duenio;
   }
 
-  update(id: string, updateDuenioDto: Partial<CreateDuenioDto>): GetDuenioDto {
+  update(id: string, updateDuenioDto: UpdateDuenioDto): GetDuenioDto {
     const duenioIndex = this.duenios.findIndex((d) => d.id === id);
     if (duenioIndex === -1) {
-      throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     const updatedDuenio: DuenioMascota = {
       ...this.duenios[duenioIndex],
@@ -58,7 +60,7 @@ export class DueniosService {
   remove(id: string): { message: string } {
     const duenioIndex = this.duenios.findIndex((d) => d.id === id);
     if (duenioIndex === -1) {
-      throw new NotFoundException(`Dueño con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     this.duenios.splice(duenioIndex, 1);
     return { message: `Dueño con ID ${id} eliminado correctamente` };

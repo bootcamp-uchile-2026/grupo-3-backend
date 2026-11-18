@@ -1,14 +1,13 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AgendaCitas } from './entities/cita.entity';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
 import { DueniosService } from './duenios.service';
 import { VeterinariosService } from './veterinarios.service';
 import { MascotasService } from './mascotas.service';
+import { UpdateCitaDto } from './dto/update-cita.dto';
+import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class CitasService {
@@ -30,8 +29,16 @@ export class CitasService {
 
     // Validar que la mascota pertenezca al dueño
     if (mascota.duenioId !== createCitaDto.duenioId) {
-      throw new BadRequestException(
+      throw new ReglaNegocioError(
         `La mascota con ID ${createCitaDto.mascotaId} no pertenece al dueño con ID ${createCitaDto.duenioId}`,
+      );
+    }
+
+    //Validar que al menos la fecha de cita sea con el dia de hoy y no en pasado.
+    const fechaCita = new Date(createCitaDto.fechaCita);
+    if (fechaCita.getTime() < Date.now()) {
+      throw new ReglaNegocioError(
+        'La fecha de la cita no puede ser anterior a la fecha actual',
       );
     }
 
@@ -51,7 +58,7 @@ export class CitasService {
   findOne(id: string): GetCitaDto {
     const cita = this.citas.find((c) => c.id === id);
     if (!cita) {
-      throw new NotFoundException(`Cita con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(cita);
   }
@@ -59,7 +66,7 @@ export class CitasService {
   findOneEntity(id: string): AgendaCitas {
     const cita = this.citas.find((c) => c.id === id);
     if (!cita) {
-      throw new NotFoundException(`Cita con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
     return cita;
   }
@@ -85,10 +92,10 @@ export class CitasService {
       .map((c) => this.mapToGetDto(c));
   }
 
-  update(id: string, updateCitaDto: Partial<CreateCitaDto>): GetCitaDto {
+  update(id: string, updateCitaDto: UpdateCitaDto): GetCitaDto {
     const citaIndex = this.citas.findIndex((c) => c.id === id);
     if (citaIndex === -1) {
-      throw new NotFoundException(`Cita con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
 
     const currentCita = this.citas[citaIndex];
@@ -108,7 +115,7 @@ export class CitasService {
     if (updateCitaDto.duenioId || updateCitaDto.mascotaId) {
       const mascota = this.mascotasService.findOneEntity(targetMascotaId);
       if (mascota.duenioId !== targetDuenioId) {
-        throw new BadRequestException(
+        throw new ReglaNegocioError(
           `La mascota con ID ${targetMascotaId} no pertenece al dueño con ID ${targetDuenioId}`,
         );
       }
@@ -128,7 +135,7 @@ export class CitasService {
   remove(id: string): { message: string } {
     const citaIndex = this.citas.findIndex((c) => c.id === id);
     if (citaIndex === -1) {
-      throw new NotFoundException(`Cita con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
     this.citas.splice(citaIndex, 1);
     return { message: `Cita con ID ${id} eliminada correctamente` };

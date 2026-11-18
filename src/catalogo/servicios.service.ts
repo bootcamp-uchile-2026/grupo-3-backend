@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Servicio } from './entities/servicio.entity';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { GetServicioDto } from './dto/get-servicio.dto';
+import { UpdateServicioDto } from './dto/update-servicio.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ServiciosService {
@@ -24,7 +26,7 @@ export class ServiciosService {
   findOne(id: string): GetServicioDto {
     const servicio = this.servicios.find((s) => s.id === id);
     if (!servicio) {
-      throw new NotFoundException(`Servicio con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(servicio);
   }
@@ -32,18 +34,15 @@ export class ServiciosService {
   findOneEntity(id: string): Servicio {
     const servicio = this.servicios.find((s) => s.id === id);
     if (!servicio) {
-      throw new NotFoundException(`Servicio con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     return servicio;
   }
 
-  update(
-    id: string,
-    updateServicioDto: Partial<CreateServicioDto>,
-  ): GetServicioDto {
+  update(id: string, updateServicioDto: UpdateServicioDto): GetServicioDto {
     const servIndex = this.servicios.findIndex((s) => s.id === id);
     if (servIndex === -1) {
-      throw new NotFoundException(`Servicio con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     const updatedServ = {
       ...this.servicios[servIndex],
@@ -56,7 +55,7 @@ export class ServiciosService {
   remove(id: string): { message: string } {
     const servIndex = this.servicios.findIndex((s) => s.id === id);
     if (servIndex === -1) {
-      throw new NotFoundException(`Servicio con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     this.servicios.splice(servIndex, 1);
     return { message: `Servicio con ID ${id} eliminado correctamente` };

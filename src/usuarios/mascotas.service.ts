@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { FichaMascota } from './entities/mascota.entity';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { GetMascotaDto } from './dto/get-mascota.dto';
 import { DueniosService } from './duenios.service';
 import { calcularEdad } from '../common/utils/date.utils';
+import { UpdateMascotaDto } from './dto/update-mascota.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class MascotasService {
@@ -33,7 +35,7 @@ export class MascotasService {
   findOne(id: string): GetMascotaDto {
     const mascota = this.mascotas.find((m) => m.id === id);
     if (!mascota) {
-      throw new NotFoundException(`Mascota con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(mascota);
   }
@@ -41,7 +43,7 @@ export class MascotasService {
   findOneEntity(id: string): FichaMascota {
     const mascota = this.mascotas.find((m) => m.id === id);
     if (!mascota) {
-      throw new NotFoundException(`Mascota con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
     return mascota;
   }
@@ -54,13 +56,10 @@ export class MascotasService {
       .map((m) => this.mapToGetDto(m));
   }
 
-  update(
-    id: string,
-    updateMascotaDto: Partial<CreateMascotaDto>,
-  ): GetMascotaDto {
+  update(id: string, updateMascotaDto: UpdateMascotaDto): GetMascotaDto {
     const mascotaIndex = this.mascotas.findIndex((m) => m.id === id);
     if (mascotaIndex === -1) {
-      throw new NotFoundException(`Mascota con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
 
     if (updateMascotaDto.duenioId) {
@@ -84,7 +83,7 @@ export class MascotasService {
   remove(id: string): { message: string } {
     const mascotaIndex = this.mascotas.findIndex((m) => m.id === id);
     if (mascotaIndex === -1) {
-      throw new NotFoundException(`Mascota con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
     this.mascotas.splice(mascotaIndex, 1);
     return { message: `Mascota con ID ${id} eliminada correctamente` };
