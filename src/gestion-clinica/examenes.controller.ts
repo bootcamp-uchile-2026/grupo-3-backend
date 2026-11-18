@@ -17,22 +17,17 @@ export class ExamenesController {
     summary: 'Emitir una nueva orden de examen asociada a una consulta',
   })
   @ApiResponse({ status: 201, type: GetOrdenExamenDto })
-  createOrden(@Body() createOrdenDto: CreateOrdenExamenDto): GetOrdenExamenDto {
+  createOrden(
+    @Body() createOrdenDto: CreateOrdenExamenDto,
+  ): Promise<GetOrdenExamenDto> {
     return this.examenesService.createOrden(createOrdenDto);
   }
 
   @Get('ordenes')
   @ApiOperation({ summary: 'Obtener todas las órdenes de exámenes' })
   @ApiResponse({ status: 200, type: [GetOrdenExamenDto] })
-  findAllOrdenes(): GetOrdenExamenDto[] {
+  findAllOrdenes(): Promise<GetOrdenExamenDto[]> {
     return this.examenesService.findAllOrdenes();
-  }
-
-  @Get('ordenes/:id')
-  @ApiOperation({ summary: 'Obtener una orden de examen por ID' })
-  @ApiResponse({ status: 200, type: GetOrdenExamenDto })
-  findOneOrden(@Param('id') id: string): GetOrdenExamenDto {
-    return this.examenesService.findOneOrden(id);
   }
 
   @Get('ordenes/consulta/:consultaId')
@@ -42,8 +37,15 @@ export class ExamenesController {
   @ApiResponse({ status: 200, type: [GetOrdenExamenDto] })
   findOrdenesByConsulta(
     @Param('consultaId') consultaId: string,
-  ): GetOrdenExamenDto[] {
+  ): Promise<GetOrdenExamenDto[]> {
     return this.examenesService.findOrdenesByConsulta(consultaId);
+  }
+
+  @Get('ordenes/:id')
+  @ApiOperation({ summary: 'Obtener una orden de examen por ID' })
+  @ApiResponse({ status: 200, type: GetOrdenExamenDto })
+  findOneOrden(@Param('id') id: string): Promise<GetOrdenExamenDto> {
+    return this.examenesService.findOneOrden(id);
   }
 
   @Post()
@@ -51,29 +53,29 @@ export class ExamenesController {
     summary: 'Registrar un examen específico dentro de una orden',
   })
   @ApiResponse({ status: 201, type: GetExamenDto })
-  createExamen(@Body() createExamenDto: CreateExamenDto): GetExamenDto {
+  createExamen(@Body() createExamenDto: CreateExamenDto): Promise<GetExamenDto> {
     return this.examenesService.createExamen(createExamenDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los exámenes registrados' })
   @ApiResponse({ status: 200, type: [GetExamenDto] })
-  findAllExamenes(): GetExamenDto[] {
+  findAllExamenes(): Promise<GetExamenDto[]> {
     return this.examenesService.findAllExamenes();
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Obtener un examen específico por ID' })
-  @ApiResponse({ status: 200, type: GetExamenDto })
-  findOneExamen(@Param('id') id: string): GetExamenDto {
-    return this.examenesService.findOneExamen(id);
   }
 
   @Get('orden/:ordenId')
   @ApiOperation({ summary: 'Obtener exámenes de una orden específica' })
   @ApiResponse({ status: 200, type: [GetExamenDto] })
-  findExamenesByOrden(@Param('ordenId') ordenId: string): GetExamenDto[] {
+  findExamenesByOrden(@Param('ordenId') ordenId: string): Promise<GetExamenDto[]> {
     return this.examenesService.findExamenesByOrden(ordenId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener un examen específico por ID' })
+  @ApiResponse({ status: 200, type: GetExamenDto })
+  findOneExamen(@Param('id') id: string): Promise<GetExamenDto> {
+    return this.examenesService.findOneExamen(id);
   }
 
   @Put(':id')
@@ -82,7 +84,7 @@ export class ExamenesController {
   updateExamen(
     @Param('id') id: string,
     @Body() updateExamenDto: UpdateExamenDto,
-  ): GetExamenDto {
+  ): Promise<GetExamenDto> {
     return this.examenesService.updateExamen(id, updateExamenDto);
   }
 }

@@ -21,14 +21,14 @@ export class ConsultasController {
   @Post()
   @ApiOperation({ summary: 'Registrar una nueva consulta clínica veterinaria' })
   @ApiResponse({ status: 201, type: GetConsultaDto })
-  create(@Body() createConsultaDto: CreateConsultaDto): GetConsultaDto {
+  create(@Body() createConsultaDto: CreateConsultaDto): Promise<GetConsultaDto> {
     return this.consultasService.create(createConsultaDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todas las consultas registradas' })
   @ApiResponse({ status: 200, type: [GetConsultaDto] })
-  findAll(): GetConsultaDto[] {
+  findAll(): Promise<GetConsultaDto[]> {
     return this.consultasService.findAll();
   }
 
@@ -37,7 +37,7 @@ export class ConsultasController {
     summary: 'Obtener el detalle de una consulta clínica por ID',
   })
   @ApiResponse({ status: 200, type: GetConsultaDto })
-  findOne(@Param('id') id: string): GetConsultaDto {
+  findOne(@Param('id') id: string): Promise<GetConsultaDto> {
     return this.consultasService.findOne(id);
   }
 
@@ -49,7 +49,7 @@ export class ConsultasController {
   update(
     @Param('id') id: string,
     @Body() updateConsultaDto: UpdateConsultaDto,
-  ): GetConsultaDto {
+  ): Promise<GetConsultaDto> {
     return this.consultasService.update(id, updateConsultaDto);
   }
 

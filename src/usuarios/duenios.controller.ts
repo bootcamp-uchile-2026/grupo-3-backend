@@ -16,26 +16,26 @@ import { UpdateDuenioDto } from './dto/update-duenio.dto';
 @ApiTags('Usuarios - Dueños de Mascotas')
 @Controller('usuarios/duenios')
 export class DueniosController {
-  constructor(private readonly dueniosService: DueniosService) {}
+  constructor(private readonly dueniosService: DueniosService) { }
 
   @Post()
   @ApiOperation({ summary: 'Registrar un nuevo dueño de mascota' })
   @ApiResponse({ status: 201, type: GetDuenioDto })
-  create(@Body() createDuenioDto: CreateDuenioDto): GetDuenioDto {
+  create(@Body() createDuenioDto: CreateDuenioDto): Promise<GetDuenioDto> {
     return this.dueniosService.create(createDuenioDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los dueños' })
   @ApiResponse({ status: 200, type: [GetDuenioDto] })
-  findAll(): GetDuenioDto[] {
+  findAll(): Promise<GetDuenioDto[]> {
     return this.dueniosService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un dueño por ID' })
   @ApiResponse({ status: 200, type: GetDuenioDto })
-  findOne(@Param('id') id: string): GetDuenioDto {
+  findOne(@Param('id') id: string): Promise<GetDuenioDto> {
     return this.dueniosService.findOne(id);
   }
 
@@ -45,7 +45,7 @@ export class DueniosController {
   update(
     @Param('id') id: string,
     @Body() updateDuenioDto: UpdateDuenioDto,
-  ): GetDuenioDto {
+  ): Promise<GetDuenioDto> {
     return this.dueniosService.update(id, updateDuenioDto);
   }
 

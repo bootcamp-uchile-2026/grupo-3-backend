@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { DuenioMascota } from './entities/duenio.entity';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
@@ -8,61 +11,75 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class DueniosService {
-  private duenios: DuenioMascota[] = [];
+  constructor(
+    @InjectRepository(DuenioMascota)
+    private readonly dueniosRepo: Repository<DuenioMascota>,
+  ) {}
 
-  create(createDuenioDto: CreateDuenioDto): GetDuenioDto {
-    const newDuenio: DuenioMascota = {
+  async create(createDuenioDto: CreateDuenioDto): Promise<GetDuenioDto> {
+    const hashedPassword = createDuenioDto.password
+      ? await bcrypt.hash(createDuenioDto.password, 10)
+      : undefined;
+
+    const newDuenio = this.dueniosRepo.create({
       id: `duenio-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createDuenioDto,
+      password: hashedPassword,
       fechaNacimiento: new Date(createDuenioDto.fechaNacimiento),
-    };
-    this.duenios.push(newDuenio);
-    return this.mapToGetDto(newDuenio);
+      rol: 'DUENIO',
+    });
+    const saved = await this.dueniosRepo.save(newDuenio);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetDuenioDto[] {
-    return this.duenios.map((d) => this.mapToGetDto(d));
+  async findAll(): Promise<GetDuenioDto[]> {
+    const list = await this.dueniosRepo.find();
+    return list.map((d) => this.mapToGetDto(d));
   }
 
-  findOne(id: string): GetDuenioDto {
-    const duenio = this.duenios.find((d) => d.id === id);
+  async findOne(id: string): Promise<GetDuenioDto> {
+    const duenio = await this.dueniosRepo.findOne({ where: { id } });
     if (!duenio) {
       throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(duenio);
   }
 
-  // Helper interno que sirve para validación interna donde sí necesitamos la entidad completa
-  findOneEntity(id: string): DuenioMascota {
-    const duenio = this.duenios.find((d) => d.id === id);
+  async findOneEntity(id: string): Promise<DuenioMascota> {
+    const duenio = await this.dueniosRepo.findOne({ where: { id } });
     if (!duenio) {
       throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
     }
     return duenio;
   }
 
-  update(id: string, updateDuenioDto: UpdateDuenioDto): GetDuenioDto {
-    const duenioIndex = this.duenios.findIndex((d) => d.id === id);
-    if (duenioIndex === -1) {
-      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
-    }
-    const updatedDuenio: DuenioMascota = {
-      ...this.duenios[duenioIndex],
-      ...updateDuenioDto,
-      fechaNacimiento: updateDuenioDto.fechaNacimiento
-        ? new Date(updateDuenioDto.fechaNacimiento)
-        : this.duenios[duenioIndex].fechaNacimiento,
-    };
-    this.duenios[duenioIndex] = updatedDuenio;
-    return this.mapToGetDto(updatedDuenio);
+  async findByEmail(correoElectronico: string): Promise<DuenioMascota | null> {
+    return this.dueniosRepo.findOne({ where: { correoElectronico } });
   }
 
-  remove(id: string): { message: string } {
-    const duenioIndex = this.duenios.findIndex((d) => d.id === id);
-    if (duenioIndex === -1) {
-      throw new RecursoNoEncontradoError(`Dueño con ID ${id} no encontrado`);
-    }
-    this.duenios.splice(duenioIndex, 1);
+  async update(
+    id: string,
+    updateDuenioDto: UpdateDuenioDto,
+  ): Promise<GetDuenioDto> {
+    const existing = await this.findOneEntity(id);
+    const hashedPassword = updateDuenioDto.password
+      ? await bcrypt.hash(updateDuenioDto.password, 10)
+      : existing.password;
+
+    const updatedDuenio = this.dueniosRepo.merge(existing, {
+      ...updateDuenioDto,
+      password: hashedPassword,
+      fechaNacimiento: updateDuenioDto.fechaNacimiento
+        ? new Date(updateDuenioDto.fechaNacimiento)
+        : existing.fechaNacimiento,
+    });
+    const saved = await this.dueniosRepo.save(updatedDuenio);
+    return this.mapToGetDto(saved);
+  }
+
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.dueniosRepo.remove(existing);
     return { message: `Dueño con ID ${id} eliminado correctamente` };
   }
 

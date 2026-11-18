@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConsultaClinica } from './entities/consulta.entity';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { GetConsultaDto } from './dto/get-consulta.dto';
@@ -9,19 +11,18 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class ConsultasService {
-  private consultas: ConsultaClinica[] = [];
-
   constructor(
+    @InjectRepository(ConsultaClinica)
+    private readonly consultasRepo: Repository<ConsultaClinica>,
     private readonly mascotasService: MascotasService,
     private readonly veterinariosService: VeterinariosService,
   ) {}
 
-  create(createConsultaDto: CreateConsultaDto): GetConsultaDto {
-    // Validar mascota y veterinario
-    this.mascotasService.findOne(createConsultaDto.mascotaId);
-    this.veterinariosService.findOne(createConsultaDto.veterinarioId);
+  async create(createConsultaDto: CreateConsultaDto): Promise<GetConsultaDto> {
+    await this.mascotasService.findOne(createConsultaDto.mascotaId);
+    await this.veterinariosService.findOne(createConsultaDto.veterinarioId);
 
-    const newConsulta: ConsultaClinica = {
+    const newConsulta = this.consultasRepo.create({
       idAtencion: `atencion-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createConsultaDto,
       fechaConsulta: new Date(createConsultaDto.fechaConsulta),
@@ -34,75 +35,77 @@ export class ConsultasService {
       fechaProxExamenes: createConsultaDto.fechaProxExamenes
         ? new Date(createConsultaDto.fechaProxExamenes)
         : undefined,
-    };
-    this.consultas.push(newConsulta);
-    return this.mapToGetDto(newConsulta);
+    });
+    const saved = await this.consultasRepo.save(newConsulta);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetConsultaDto[] {
-    return this.consultas.map((c) => this.mapToGetDto(c));
+  async findAll(): Promise<GetConsultaDto[]> {
+    const list = await this.consultasRepo.find();
+    return list.map((c) => this.mapToGetDto(c));
   }
 
-  findOne(id: string): GetConsultaDto {
-    const consulta = this.consultas.find((c) => c.idAtencion === id);
+  async findOne(id: string): Promise<GetConsultaDto> {
+    const consulta = await this.consultasRepo.findOne({
+      where: { idAtencion: id },
+    });
     if (!consulta) {
       throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(consulta);
   }
 
-  findOneEntity(id: string): ConsultaClinica {
-    const consulta = this.consultas.find((c) => c.idAtencion === id);
+  async findOneEntity(id: string): Promise<ConsultaClinica> {
+    const consulta = await this.consultasRepo.findOne({
+      where: { idAtencion: id },
+    });
     if (!consulta) {
       throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
     return consulta;
   }
 
-  update(id: string, updateConsultaDto: UpdateConsultaDto): GetConsultaDto {
-    const consIndex = this.consultas.findIndex((c) => c.idAtencion === id);
-    if (consIndex === -1) {
-      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
-    }
+  async update(
+    id: string,
+    updateConsultaDto: UpdateConsultaDto,
+  ): Promise<GetConsultaDto> {
+    const existing = await this.findOneEntity(id);
 
     if (updateConsultaDto.mascotaId) {
-      this.mascotasService.findOne(updateConsultaDto.mascotaId);
+      await this.mascotasService.findOne(updateConsultaDto.mascotaId);
     }
     if (updateConsultaDto.veterinarioId) {
-      this.veterinariosService.findOne(updateConsultaDto.veterinarioId);
+      await this.veterinariosService.findOne(updateConsultaDto.veterinarioId);
     }
 
-    const updatedConsulta = {
-      ...this.consultas[consIndex],
+    const updatedConsulta = this.consultasRepo.merge(existing, {
       ...updateConsultaDto,
       fechaConsulta: updateConsultaDto.fechaConsulta
         ? new Date(updateConsultaDto.fechaConsulta)
-        : this.consultas[consIndex].fechaConsulta,
+        : existing.fechaConsulta,
       fechaProxConsulta: updateConsultaDto.fechaProxConsulta
         ? new Date(updateConsultaDto.fechaProxConsulta)
-        : this.consultas[consIndex].fechaProxConsulta,
+        : existing.fechaProxConsulta,
       fechaProxVacuna: updateConsultaDto.fechaProxVacuna
         ? new Date(updateConsultaDto.fechaProxVacuna)
-        : this.consultas[consIndex].fechaProxVacuna,
+        : existing.fechaProxVacuna,
       fechaProxExamenes: updateConsultaDto.fechaProxExamenes
         ? new Date(updateConsultaDto.fechaProxExamenes)
-        : this.consultas[consIndex].fechaProxExamenes,
-    };
-    this.consultas[consIndex] = updatedConsulta;
-    return this.mapToGetDto(updatedConsulta);
+        : existing.fechaProxExamenes,
+    });
+    const saved = await this.consultasRepo.save(updatedConsulta);
+    return this.mapToGetDto(saved);
   }
 
-  setReceta(consultaId: string, recetaId: string): void {
-    const consulta = this.findOneEntity(consultaId);
+  async setReceta(consultaId: string, recetaId: string): Promise<void> {
+    const consulta = await this.findOneEntity(consultaId);
     consulta.recetaId = recetaId;
+    await this.consultasRepo.save(consulta);
   }
 
-  remove(id: string): { message: string } {
-    const consIndex = this.consultas.findIndex((c) => c.idAtencion === id);
-    if (consIndex === -1) {
-      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
-    }
-    this.consultas.splice(consIndex, 1);
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.consultasRepo.remove(existing);
     return { message: `Consulta con ID ${id} eliminada correctamente` };
   }
 

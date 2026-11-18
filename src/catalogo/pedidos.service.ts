@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Pedido, ItemPedido } from './entities/pedido.entity';
 import {
   CreatePedidoDto,
@@ -13,21 +15,26 @@ import { StockInsuficienteError } from 'src/common/errors/stock-insuficiente.err
 
 @Injectable()
 export class PedidosService {
-  private pedidos: Pedido[] = [];
-
   constructor(
+    @InjectRepository(Pedido)
+    private readonly pedidosRepo: Repository<Pedido>,
+    @InjectRepository(ItemPedido)
+    private readonly pedidoItemsRepo: Repository<ItemPedido>,
     private readonly carritoService: CarritoService,
     private readonly productosService: ProductosService,
   ) {}
 
-  create(carritoId: string, dto: CreatePedidoDto): GetPedidoDto {
+  async create(
+    carritoId: string,
+    dto: CreatePedidoDto,
+  ): Promise<GetPedidoDto> {
     if (!dto.aceptaTerminos) {
       throw new ReglaNegocioError(
         'Debes aceptar los términos y condiciones para continuar.',
       );
     }
 
-    const carrito = this.carritoService.obtener(carritoId);
+    const carrito = await this.carritoService.obtener(carritoId);
 
     if (carrito.items.length === 0) {
       throw new ReglaNegocioError('El carrito de compras está vacío.');
@@ -35,14 +42,16 @@ export class PedidosService {
 
     // 1. Validar y descontar stock de cada producto
     for (const item of carrito.items) {
-      const producto = this.productosService.findOneEntity(item.productoId);
+      const producto = await this.productosService.findOneEntity(
+        item.productoId,
+      );
       if (producto.stock < item.cantidad) {
         throw new StockInsuficienteError(producto.stock, producto.nombre);
       }
     }
 
     for (const item of carrito.items) {
-      this.productosService.decreaseStock(item.productoId, item.cantidad);
+      await this.productosService.decreaseStock(item.productoId, item.cantidad);
     }
 
     // 2. Determinar costo de envío y dirección
@@ -63,20 +72,25 @@ export class PedidosService {
     }
 
     // 3. Crear ítems del pedido
-    const itemsPedido: ItemPedido[] = carrito.items.map((it) => ({
-      productoId: it.productoId,
-      nombre: it.nombre,
-      imagen: it.imagen,
-      cantidad: it.cantidad,
-      precioUnitario: it.precioUnitario,
-      subtotal: it.subtotal,
-    }));
+    const orderId = await this.generarNumeroOrden();
+    const itemsPedido: ItemPedido[] = carrito.items.map((it) =>
+      this.pedidoItemsRepo.create({
+        pedidoId: orderId,
+        productoId: it.productoId,
+        nombre: it.nombre,
+        imagen: it.imagen,
+        cantidad: it.cantidad,
+        precioUnitario: it.precioUnitario,
+        subtotal: it.subtotal,
+      }),
+    );
 
     // 4. Calcular total final
-    const totalFinal = carrito.subtotal + costoEnvio;
+    const totalFinal =
+      Number(carrito.subtotal) - Number(carrito.descuentoCupon || 0) + costoEnvio;
 
-    const nuevoPedido: Pedido = {
-      id: this.generarNumeroOrden(),
+    const nuevoPedido = this.pedidosRepo.create({
+      id: orderId,
       nombreCliente: dto.nombre,
       apellidosCliente: dto.apellidos,
       correoElectronico: dto.correoElectronico,
@@ -97,18 +111,21 @@ export class PedidosService {
       total: totalFinal,
       estadoPedido: 'Confirmado',
       fechaCreacion: new Date(),
-    };
+    });
 
-    this.pedidos.push(nuevoPedido);
+    const saved = await this.pedidosRepo.save(nuevoPedido);
 
     // 5. Vaciar el carrito tras compra exitosa
-    this.carritoService.cerrar(carritoId);
+    await this.carritoService.cerrar(carritoId);
 
-    return this.mapToDto(nuevoPedido);
+    return this.mapToDto(saved);
   }
 
-  findOne(id: string): GetPedidoDto {
-    const pedido = this.pedidos.find((p) => p.id === id);
+  async findOne(id: string): Promise<GetPedidoDto> {
+    const pedido = await this.pedidosRepo.findOne({
+      where: { id },
+      relations: { items: true },
+    });
     if (!pedido) {
       throw new RecursoNoEncontradoError(
         `Pedido con orden ${id} no encontrado`,
@@ -117,8 +134,8 @@ export class PedidosService {
     return this.mapToDto(pedido);
   }
 
-  getSeguimiento(id: string): SeguimientoPedidoDto {
-    const pedido = this.findOne(id);
+  async getSeguimiento(id: string): Promise<SeguimientoPedidoDto> {
+    const pedido = await this.findOne(id);
 
     return {
       numeroOrden: pedido.id,
@@ -127,12 +144,12 @@ export class PedidosService {
         {
           paso: 'Recibido',
           completado: true,
-          fecha: pedido.fechaCreacion.toISOString(),
+          fecha: new Date(pedido.fechaCreacion).toISOString(),
         },
         {
           paso: 'En preparación',
           completado: true,
-          fecha: pedido.fechaCreacion.toISOString(),
+          fecha: new Date(pedido.fechaCreacion).toISOString(),
         },
         { paso: 'En camino', completado: false, fecha: null },
         { paso: 'Entregado', completado: false, fecha: null },
@@ -140,11 +157,14 @@ export class PedidosService {
     };
   }
 
-  private generarNumeroOrden(): string {
+  private async generarNumeroOrden(): Promise<string> {
     let id: string;
+    let exists = true;
     do {
       id = `ORD-${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 90 + 10)}`;
-    } while (this.pedidos.some((p) => p.id === id));
+      const found = await this.pedidosRepo.findOne({ where: { id } });
+      exists = !!found;
+    } while (exists);
     return id;
   }
 
@@ -159,7 +179,14 @@ export class PedidosService {
       tiempoEstimadoEntrega: pedido.tiempoEstimadoEntrega,
       direccionEntrega: pedido.direccionEntrega,
       sucursalRetiro: pedido.sucursalRetiro,
-      items: pedido.items.map((it) => ({ ...it })),
+      items: (pedido.items || []).map((it) => ({
+        productoId: it.productoId,
+        nombre: it.nombre,
+        imagen: it.imagen,
+        cantidad: it.cantidad,
+        precioUnitario: it.precioUnitario,
+        subtotal: it.subtotal,
+      })),
       subtotal: pedido.subtotal,
       costoEnvio: pedido.costoEnvio,
       descuento: pedido.descuento,

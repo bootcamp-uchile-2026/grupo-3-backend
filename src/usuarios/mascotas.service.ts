@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { FichaMascota } from './entities/mascota.entity';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { GetMascotaDto } from './dto/get-mascota.dto';
@@ -9,83 +11,77 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class MascotasService {
-  private mascotas: FichaMascota[] = [];
+  constructor(
+    @InjectRepository(FichaMascota)
+    private readonly mascotasRepo: Repository<FichaMascota>,
+    private readonly dueniosService: DueniosService,
+  ) {}
 
-  constructor(private readonly dueniosService: DueniosService) {}
-
-  create(createMascotaDto: CreateMascotaDto): GetMascotaDto {
-    // Validar que el dueño exista
-    this.dueniosService.findOne(createMascotaDto.duenioId);
+  async create(createMascotaDto: CreateMascotaDto): Promise<GetMascotaDto> {
+    await this.dueniosService.findOne(createMascotaDto.duenioId);
 
     const fechaNac = new Date(createMascotaDto.fechaNacimiento);
-    const newMascota: FichaMascota = {
+    const newMascota = this.mascotasRepo.create({
       id: `mascota-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createMascotaDto,
       fechaNacimiento: fechaNac,
-      edad: calcularEdad(fechaNac),
-    };
-    this.mascotas.push(newMascota);
-    return this.mapToGetDto(newMascota);
+    });
+    const saved = await this.mascotasRepo.save(newMascota);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetMascotaDto[] {
-    return this.mascotas.map((m) => this.mapToGetDto(m));
+  async findAll(): Promise<GetMascotaDto[]> {
+    const list = await this.mascotasRepo.find();
+    return list.map((m) => this.mapToGetDto(m));
   }
 
-  findOne(id: string): GetMascotaDto {
-    const mascota = this.mascotas.find((m) => m.id === id);
+  async findOne(id: string): Promise<GetMascotaDto> {
+    const mascota = await this.mascotasRepo.findOne({ where: { id } });
     if (!mascota) {
       throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(mascota);
   }
 
-  findOneEntity(id: string): FichaMascota {
-    const mascota = this.mascotas.find((m) => m.id === id);
+  async findOneEntity(id: string): Promise<FichaMascota> {
+    const mascota = await this.mascotasRepo.findOne({ where: { id } });
     if (!mascota) {
       throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
     }
     return mascota;
   }
 
-  findByDuenio(duenioId: string): GetMascotaDto[] {
-    // Validar que el dueño exista
-    this.dueniosService.findOne(duenioId);
-    return this.mascotas
-      .filter((m) => m.duenioId === duenioId)
-      .map((m) => this.mapToGetDto(m));
+  async findByDuenio(duenioId: string): Promise<GetMascotaDto[]> {
+    await this.dueniosService.findOne(duenioId);
+    const list = await this.mascotasRepo.find({ where: { duenioId } });
+    return list.map((m) => this.mapToGetDto(m));
   }
 
-  update(id: string, updateMascotaDto: UpdateMascotaDto): GetMascotaDto {
-    const mascotaIndex = this.mascotas.findIndex((m) => m.id === id);
-    if (mascotaIndex === -1) {
-      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
-    }
+  async update(
+    id: string,
+    updateMascotaDto: UpdateMascotaDto,
+  ): Promise<GetMascotaDto> {
+    const existing = await this.findOneEntity(id);
 
     if (updateMascotaDto.duenioId) {
-      this.dueniosService.findOne(updateMascotaDto.duenioId);
+      await this.dueniosService.findOne(updateMascotaDto.duenioId);
     }
 
     const fechaNac = updateMascotaDto.fechaNacimiento
       ? new Date(updateMascotaDto.fechaNacimiento)
-      : this.mascotas[mascotaIndex].fechaNacimiento;
+      : existing.fechaNacimiento;
 
-    const updatedMascota: FichaMascota = {
-      ...this.mascotas[mascotaIndex],
+    const updatedMascota = this.mascotasRepo.merge(existing, {
       ...updateMascotaDto,
       fechaNacimiento: fechaNac,
-      edad: calcularEdad(fechaNac),
-    };
-    this.mascotas[mascotaIndex] = updatedMascota;
-    return this.mapToGetDto(updatedMascota);
+    });
+    const saved = await this.mascotasRepo.save(updatedMascota);
+    return this.mapToGetDto(saved);
   }
 
-  remove(id: string): { message: string } {
-    const mascotaIndex = this.mascotas.findIndex((m) => m.id === id);
-    if (mascotaIndex === -1) {
-      throw new RecursoNoEncontradoError(`Mascota con ID ${id} no encontrada`);
-    }
-    this.mascotas.splice(mascotaIndex, 1);
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.mascotasRepo.remove(existing);
     return { message: `Mascota con ID ${id} eliminada correctamente` };
   }
 

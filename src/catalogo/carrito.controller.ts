@@ -19,7 +19,6 @@ import {
   GetCarritoDto,
 } from './dto/carrito.dto';
 
-//Documentacion de de las rutas que reciben :carritoId
 const ApiCarritoExistente = () =>
   applyDecorators(
     ApiParam({
@@ -31,7 +30,7 @@ const ApiCarritoExistente = () =>
       description: 'Id de carrito inválido o datos incorrectos.',
     }),
     ApiResponse({
-      status: 400,
+      status: 404,
       description: 'El carrito no existe o ya se usó para una compra.',
     }),
   );
@@ -48,7 +47,7 @@ export class CarritoController {
       'Devuelve el carrito vacío con su id. El cliente debe guardar ese id para las siguientes llamadas.',
   })
   @ApiResponse({ status: 201, type: GetCarritoDto })
-  crear(): GetCarritoDto {
+  crear(): Promise<GetCarritoDto> {
     return this.carritoService.crear();
   }
 
@@ -60,7 +59,7 @@ export class CarritoController {
   @ApiCarritoExistente()
   getCarrito(
     @Param('carritoId', carritoIdPipe) carritoId: string,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.getCarrito(carritoId);
   }
 
@@ -72,7 +71,7 @@ export class CarritoController {
   addItem(
     @Param('carritoId', carritoIdPipe) carritoId: string,
     @Body() dto: AgregarAlCarritoDto,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.addItem(carritoId, dto);
   }
 
@@ -87,7 +86,7 @@ export class CarritoController {
     @Param('carritoId', carritoIdPipe) carritoId: string,
     @Param('productoId') productoId: string,
     @Body() dto: ActualizarCantidadItemDto,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.updateQuantity(carritoId, productoId, dto);
   }
 
@@ -100,7 +99,7 @@ export class CarritoController {
   removeItem(
     @Param('carritoId', carritoIdPipe) carritoId: string,
     @Param('productoId') productoId: string,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.removeItem(carritoId, productoId);
   }
 
@@ -113,7 +112,7 @@ export class CarritoController {
   aplicarCupon(
     @Param('carritoId', carritoIdPipe) carritoId: string,
     @Body() dto: AplicarCuponDto,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.aplicarCupon(carritoId, dto);
   }
 
@@ -123,7 +122,7 @@ export class CarritoController {
   @ApiCarritoExistente()
   removerCupon(
     @Param('carritoId', carritoIdPipe) carritoId: string,
-  ): GetCarritoDto {
+  ): Promise<GetCarritoDto> {
     return this.carritoService.removerCupon(carritoId);
   }
 }

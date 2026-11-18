@@ -21,28 +21,28 @@ export class MascotasController {
   @Post()
   @ApiOperation({ summary: 'Registrar una nueva mascota (Ficha Mascota)' })
   @ApiResponse({ status: 201, type: GetMascotaDto })
-  create(@Body() createMascotaDto: CreateMascotaDto): GetMascotaDto {
+  create(@Body() createMascotaDto: CreateMascotaDto): Promise<GetMascotaDto> {
     return this.mascotasService.create(createMascotaDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todas las mascotas' })
   @ApiResponse({ status: 200, type: [GetMascotaDto] })
-  findAll(): GetMascotaDto[] {
+  findAll(): Promise<GetMascotaDto[]> {
     return this.mascotasService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una mascota por ID' })
   @ApiResponse({ status: 200, type: GetMascotaDto })
-  findOne(@Param('id') id: string): GetMascotaDto {
+  findOne(@Param('id') id: string): Promise<GetMascotaDto> {
     return this.mascotasService.findOne(id);
   }
 
   @Get('duenio/:duenioId')
   @ApiOperation({ summary: 'Obtener mascotas de un dueño específico' })
   @ApiResponse({ status: 200, type: [GetMascotaDto] })
-  findByDuenio(@Param('duenioId') duenioId: string): GetMascotaDto[] {
+  findByDuenio(@Param('duenioId') duenioId: string): Promise<GetMascotaDto[]> {
     return this.mascotasService.findByDuenio(duenioId);
   }
 
@@ -52,7 +52,7 @@ export class MascotasController {
   update(
     @Param('id') id: string,
     @Body() updateMascotaDto: UpdateMascotaDto,
-  ): GetMascotaDto {
+  ): Promise<GetMascotaDto> {
     return this.mascotasService.update(id, updateMascotaDto);
   }
 

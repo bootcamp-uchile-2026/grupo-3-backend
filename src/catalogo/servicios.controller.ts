@@ -21,21 +21,21 @@ export class ServiciosController {
   @Post()
   @ApiOperation({ summary: 'Agregar un nuevo servicio al catálogo' })
   @ApiResponse({ status: 201, type: GetServicioDto })
-  create(@Body() createServicioDto: CreateServicioDto): GetServicioDto {
+  create(@Body() createServicioDto: CreateServicioDto): Promise<GetServicioDto> {
     return this.serviciosService.create(createServicioDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los servicios' })
   @ApiResponse({ status: 200, type: [GetServicioDto] })
-  findAll(): GetServicioDto[] {
+  findAll(): Promise<GetServicioDto[]> {
     return this.serviciosService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un servicio por ID' })
   @ApiResponse({ status: 200, type: GetServicioDto })
-  findOne(@Param('id') id: string): GetServicioDto {
+  findOne(@Param('id') id: string): Promise<GetServicioDto> {
     return this.serviciosService.findOne(id);
   }
 
@@ -45,7 +45,7 @@ export class ServiciosController {
   update(
     @Param('id') id: string,
     @Body() updateServicioDto: UpdateServicioDto,
-  ): GetServicioDto {
+  ): Promise<GetServicioDto> {
     return this.serviciosService.update(id, updateServicioDto);
   }
 

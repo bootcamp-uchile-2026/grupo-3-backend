@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    image: petlove-api:1.0
+    image: ${DOCKER_IMAGE:-petlove-api}:${APP_VERSION:-0.3.0}
     container_name: petlove-api
     ports:
       - "${API_PORT:-3000}:3000"
@@ -13,6 +13,9 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:-petlove_jwt_secret_key_2026}
+    volumes:
+      - uploads-data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -21,6 +24,8 @@ services:
   db:
     image: mysql:8
     container_name: petlove-db
+    ports:
+      - "${DB_PORT:-3306}:3306"
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -37,3 +42,4 @@ services:
 
 volumes:
   mysql-data:
+  uploads-data:
