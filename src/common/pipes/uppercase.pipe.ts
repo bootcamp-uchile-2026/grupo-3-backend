@@ -6,10 +6,10 @@ import { Injectable, PipeTransform, BadRequestException } from '@nestjs/common';
  */
 @Injectable()
 export class UppercasePipe implements PipeTransform<string, string> {
-    transform(value: string): string {
-        if (typeof value !== 'string') {
-            throw new BadRequestException('El valor debe ser una cadena de texto');
-        }
-        return value.toUpperCase();
+  transform(value: string): string {
+    if (typeof value !== 'string') {
+      throw new BadRequestException('El valor debe ser una cadena de texto');
     }
+    return value.toUpperCase();
+  }
 }

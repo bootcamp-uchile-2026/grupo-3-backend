@@ -14,8 +14,6 @@ import { GestionClinicaModule } from './gestion-clinica/gestion-clinica.module';
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
-
-
 @Module({
   imports: [UsuariosModule, CatalogoModule, GestionClinicaModule],
   controllers: [AppController],
@@ -35,4 +33,3 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
-

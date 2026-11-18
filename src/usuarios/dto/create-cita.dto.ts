@@ -12,7 +12,10 @@ export class CreateCitaDto {
     description: 'Fecha y hora de la cita (formato ISO)',
     example: '2026-08-25T10:00:00.000Z',
   })
-  @IsDateString({}, { message: 'La fecha de la cita debe ser una fecha válida en formato ISO' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de la cita debe ser una fecha válida en formato ISO' },
+  )
   fechaCita: string | Date;
 
   @ApiProperty({ description: 'ID del dueño', example: 'duenio-123' })
@@ -44,6 +47,9 @@ export class CreateCitaDto {
   })
   @IsOptional()
   @IsArray({ message: 'Los servicios adicionales deben ser una lista' })
-  @IsString({ each: true, message: 'Cada servicio adicional debe ser un texto' })
+  @IsString({
+    each: true,
+    message: 'Cada servicio adicional debe ser un texto',
+  })
   serviciosAdicionales?: string[];
 }

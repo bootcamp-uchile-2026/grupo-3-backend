@@ -26,7 +26,8 @@ export class Veterinario extends Persona {
 
   @ApiProperty({
     description: 'Descripción profesional o perfil del veterinario',
-    example: 'Especialista en medicina felina y canina con postgrado en cirugía',
+    example:
+      'Especialista en medicina felina y canina con postgrado en cirugía',
     required: false,
   })
   descripcionVeterinario?: string;

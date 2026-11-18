@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Receta } from './entities/receta.entity';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { GetRecetaDto } from './dto/get-receta.dto';
 import { ConsultasService } from './consultas.service';
 import { ProductosService } from '../catalogo/productos.service';
+import { UpdateRecetaDto } from './dto/update-receta.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class RecetasService {
@@ -44,15 +46,15 @@ export class RecetasService {
   findOne(id: string): GetRecetaDto {
     const receta = this.recetas.find((r) => r.id === id);
     if (!receta) {
-      throw new NotFoundException(`Receta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(receta);
   }
 
-  update(id: string, updateRecetaDto: Partial<CreateRecetaDto>): GetRecetaDto {
+  update(id: string, updateRecetaDto: UpdateRecetaDto): GetRecetaDto {
     const recIndex = this.recetas.findIndex((r) => r.id === id);
     if (recIndex === -1) {
-      throw new NotFoundException(`Receta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
 
     if (updateRecetaDto.consultaId) {
@@ -76,7 +78,7 @@ export class RecetasService {
   remove(id: string): { message: string } {
     const recIndex = this.recetas.findIndex((r) => r.id === id);
     if (recIndex === -1) {
-      throw new NotFoundException(`Receta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
     this.recetas.splice(recIndex, 1);
     return { message: `Receta con ID ${id} eliminada correctamente` };

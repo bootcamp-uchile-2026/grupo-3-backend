@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ConsultasService } from './consultas.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { GetConsultaDto } from './dto/get-consulta.dto';
+import { UpdateConsultaDto } from './dto/update-consulta.dto';
 
 @ApiTags('Gestión de Clínica - Consultas')
 @Controller('gestion-clinica/consultas')
@@ -47,7 +48,7 @@ export class ConsultasController {
   @ApiResponse({ status: 200, type: GetConsultaDto })
   update(
     @Param('id') id: string,
-    @Body() updateConsultaDto: Partial<CreateConsultaDto>,
+    @Body() updateConsultaDto: UpdateConsultaDto,
   ): GetConsultaDto {
     return this.consultasService.update(id, updateConsultaDto);
   }

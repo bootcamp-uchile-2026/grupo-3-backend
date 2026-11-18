@@ -149,7 +149,7 @@ Los errores inesperados responden 500 con un mensaje genérico; el detalle técn
 
 | | |
 |---|---|
-| **Proveedor** | AWS EC2 (Ubuntu Server 24.04, t3.small, región us-east-2) |
+| **Proveedor** | AWS EC2 (Ubuntu Server 26.04, t3.small, región us-east-2) |
 | **URL base de la API** | `http://18.226.214.170:3000/api/v1` |
 | **Documentación Swagger** | `http://18.226.214.170:3000/api` |
 | **Base de datos** | MySQL 8 en contenedor, sin exposición pública |
@@ -174,3 +174,7 @@ La primera versión del modelo de datos, con su diagrama entidad-relación, las 
 - **`feature/*`, `fix/*`, `docs/*`, `chore/*`:** ramas de trabajo, creadas desde `develop` e integradas mediante Pull Request.
 
 Flujo: rama de trabajo → PR a `develop` → pruebas → PR de `develop` a `main` → tag de la entrega.
+
+## Problemas conocidos
+
+- **Endpoints `PUT` (actualización):** responden 500 porque el cuerpo de la petición no llega al servicio. Afecta a la actualización de recursos en los módulos de usuarios, catálogo y gestión clínica. Las operaciones de creación (`POST`), consulta (`GET`) y eliminación no están afectadas. Se corregirá en el Hito 3.

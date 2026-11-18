@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OrdenExamen } from './entities/orden-examen.entity';
 import { Examen } from './entities/examen.entity';
 import { CreateOrdenExamenDto } from './dto/create-orden-examen.dto';
@@ -6,6 +6,8 @@ import { CreateExamenDto } from './dto/create-examen.dto';
 import { GetOrdenExamenDto } from './dto/get-orden-examen.dto';
 import { GetExamenDto } from './dto/get-examen.dto';
 import { ConsultasService } from './consultas.service';
+import { UpdateExamenDto } from './dto/update-examen.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ExamenesService {
@@ -35,7 +37,9 @@ export class ExamenesService {
   findOneOrden(id: string): GetOrdenExamenDto {
     const orden = this.ordenes.find((o) => o.id === id);
     if (!orden) {
-      throw new NotFoundException(`Orden de examen con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Orden de examen con ID ${id} no encontrada`,
+      );
     }
     return this.mapToGetOrdenDto(orden);
   }
@@ -43,7 +47,9 @@ export class ExamenesService {
   findOneOrdenEntity(id: string): OrdenExamen {
     const orden = this.ordenes.find((o) => o.id === id);
     if (!orden) {
-      throw new NotFoundException(`Orden de examen con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Orden de examen con ID ${id} no encontrada`,
+      );
     }
     return orden;
   }
@@ -76,7 +82,7 @@ export class ExamenesService {
   findOneExamen(id: string): GetExamenDto {
     const examen = this.examenes.find((e) => e.id === id);
     if (!examen) {
-      throw new NotFoundException(`Examen con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Examen con ID ${id} no encontrado`);
     }
     return this.mapToGetExamenDto(examen);
   }
@@ -88,13 +94,10 @@ export class ExamenesService {
       .map((e) => this.mapToGetExamenDto(e));
   }
 
-  updateExamen(
-    id: string,
-    updateExamenDto: Partial<CreateExamenDto>,
-  ): GetExamenDto {
+  updateExamen(id: string, updateExamenDto: UpdateExamenDto): GetExamenDto {
     const exIndex = this.examenes.findIndex((e) => e.id === id);
     if (exIndex === -1) {
-      throw new NotFoundException(`Examen con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Examen con ID ${id} no encontrado`);
     }
 
     if (updateExamenDto.ordenId) {

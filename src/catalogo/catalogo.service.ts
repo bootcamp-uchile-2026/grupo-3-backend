@@ -83,8 +83,7 @@ export class CatalogoService {
 
       const itemRango = item.rangoEdad ? item.rangoEdad.toLowerCase() : 'todos';
       const matchRango =
-        itemRango === 'todos' ||
-        itemRango === rangoMascota.toLowerCase();
+        itemRango === 'todos' || itemRango === rangoMascota.toLowerCase();
 
       return matchEspecie && matchRango;
     });

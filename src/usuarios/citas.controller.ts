@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CitasService } from './citas.service';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
+import { UpdateCitaDto } from './dto/update-cita.dto';
 
 @ApiTags('Usuarios - Agenda de Citas')
 @Controller('usuarios/citas')
@@ -66,7 +67,7 @@ export class CitasController {
   @ApiResponse({ status: 200, type: GetCitaDto })
   update(
     @Param('id') id: string,
-    @Body() updateCitaDto: Partial<CreateCitaDto>,
+    @Body() updateCitaDto: UpdateCitaDto,
   ): GetCitaDto {
     return this.citasService.update(id, updateCitaDto);
   }

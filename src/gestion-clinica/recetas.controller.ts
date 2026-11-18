@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RecetasService } from './recetas.service';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { GetRecetaDto } from './dto/get-receta.dto';
+import { UpdateRecetaDto } from './dto/update-receta.dto';
 
 @ApiTags('Gestión de Clínica - Recetas')
 @Controller('gestion-clinica/recetas')
@@ -45,7 +46,7 @@ export class RecetasController {
   @ApiResponse({ status: 200, type: GetRecetaDto })
   update(
     @Param('id') id: string,
-    @Body() updateRecetaDto: Partial<CreateRecetaDto>,
+    @Body() updateRecetaDto: UpdateRecetaDto,
   ): GetRecetaDto {
     return this.recetasService.update(id, updateRecetaDto);
   }

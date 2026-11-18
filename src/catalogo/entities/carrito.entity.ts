@@ -27,13 +27,13 @@ export class ItemCarrito {
 }
 
 export class Carrito {
-  @ApiProperty({ description: 'Identificador del carrito' })
+  @ApiProperty({ description: 'Identificador del carrito (UUID)' })
   id: string;
 
-  @ApiProperty({ description: 'ID del usuario propietario', required: false })
-  usuarioId?: string;
-
-  @ApiProperty({ description: 'Lista de artículos en el carrito', type: [ItemCarrito] })
+  @ApiProperty({
+    description: 'Lista de artículos en el carrito',
+    type: [ItemCarrito],
+  })
   items: ItemCarrito[];
 
   @ApiProperty({ description: 'Código de cupón aplicado', required: false })

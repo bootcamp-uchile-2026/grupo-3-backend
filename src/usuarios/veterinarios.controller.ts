@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { VeterinariosService } from './veterinarios.service';
 import { CreateVeterinarioDto } from './dto/create-veterinario.dto';
 import { GetVeterinarioDto } from './dto/get-veterinario.dto';
+import { UpdateVeterinarioDto } from './dto/update-veterinario.dto';
 
 @ApiTags('Usuarios - Veterinarios')
 @Controller('usuarios/veterinarios')
@@ -45,7 +46,7 @@ export class VeterinariosController {
   @ApiResponse({ status: 200, type: GetVeterinarioDto })
   update(
     @Param('id') id: string,
-    @Body() updateVeterinarioDto: Partial<CreateVeterinarioDto>,
+    @Body() updateVeterinarioDto: UpdateVeterinarioDto,
   ): GetVeterinarioDto {
     return this.veterinariosService.update(id, updateVeterinarioDto);
   }

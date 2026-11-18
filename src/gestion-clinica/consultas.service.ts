@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConsultaClinica } from './entities/consulta.entity';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { GetConsultaDto } from './dto/get-consulta.dto';
 import { MascotasService } from '../usuarios/mascotas.service';
 import { VeterinariosService } from '../usuarios/veterinarios.service';
+import { UpdateConsultaDto } from './dto/update-consulta.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ConsultasService {
@@ -44,7 +46,7 @@ export class ConsultasService {
   findOne(id: string): GetConsultaDto {
     const consulta = this.consultas.find((c) => c.idAtencion === id);
     if (!consulta) {
-      throw new NotFoundException(`Consulta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(consulta);
   }
@@ -52,18 +54,15 @@ export class ConsultasService {
   findOneEntity(id: string): ConsultaClinica {
     const consulta = this.consultas.find((c) => c.idAtencion === id);
     if (!consulta) {
-      throw new NotFoundException(`Consulta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
     return consulta;
   }
 
-  update(
-    id: string,
-    updateConsultaDto: Partial<CreateConsultaDto>,
-  ): GetConsultaDto {
+  update(id: string, updateConsultaDto: UpdateConsultaDto): GetConsultaDto {
     const consIndex = this.consultas.findIndex((c) => c.idAtencion === id);
     if (consIndex === -1) {
-      throw new NotFoundException(`Consulta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
 
     if (updateConsultaDto.mascotaId) {
@@ -101,7 +100,7 @@ export class ConsultasService {
   remove(id: string): { message: string } {
     const consIndex = this.consultas.findIndex((c) => c.idAtencion === id);
     if (consIndex === -1) {
-      throw new NotFoundException(`Consulta con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(`Consulta con ID ${id} no encontrada`);
     }
     this.consultas.splice(consIndex, 1);
     return { message: `Consulta con ID ${id} eliminada correctamente` };

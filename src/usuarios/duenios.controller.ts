@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DueniosService } from './duenios.service';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
+import { UpdateDuenioDto } from './dto/update-duenio.dto';
 
 @ApiTags('Usuarios - Dueños de Mascotas')
 @Controller('usuarios/duenios')
@@ -43,7 +44,7 @@ export class DueniosController {
   @ApiResponse({ status: 200, type: GetDuenioDto })
   update(
     @Param('id') id: string,
-    @Body() updateDuenioDto: Partial<CreateDuenioDto>,
+    @Body() updateDuenioDto: UpdateDuenioDto,
   ): GetDuenioDto {
     return this.dueniosService.update(id, updateDuenioDto);
   }

@@ -7,18 +7,27 @@ export class CreateResenaDto {
   @IsNotEmpty({ message: 'El ID del usuario no puede estar vacío' })
   usuarioId: string;
 
-  @ApiProperty({ description: 'Nombre del usuario', example: 'Carlos Izquierdo' })
+  @ApiProperty({
+    description: 'Nombre del usuario',
+    example: 'Carlos Izquierdo',
+  })
   @IsString({ message: 'El nombre del usuario debe ser un texto' })
   @IsNotEmpty({ message: 'El nombre del usuario no puede estar vacío' })
   nombreUsuario: string;
 
-  @ApiProperty({ description: 'Calificación dada de 1 a 5 estrellas', example: 5 })
+  @ApiProperty({
+    description: 'Calificación dada de 1 a 5 estrellas',
+    example: 5,
+  })
   @IsInt({ message: 'La calificación debe ser un número entero' })
   @Min(1, { message: 'La calificación mínima es 1' })
   @Max(5, { message: 'La calificación máxima es 5' })
   calificacion: number;
 
-  @ApiProperty({ description: 'Título de la reseña', example: 'Buena relación precio-calidad' })
+  @ApiProperty({
+    description: 'Título de la reseña',
+    example: 'Buena relación precio-calidad',
+  })
   @IsString({ message: 'El título debe ser un texto' })
   @Length(3, 100, { message: 'El título debe tener entre 3 y 100 caracteres' })
   titulo: string;
