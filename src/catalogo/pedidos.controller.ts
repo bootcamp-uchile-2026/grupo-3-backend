@@ -39,7 +39,7 @@ export class PedidosController {
   create(
     @Param('carritoId', carritoIdPipe) carritoId: string,
     @Body() dto: CreatePedidoDto,
-  ): GetPedidoDto {
+  ): Promise<GetPedidoDto> {
     return this.pedidosService.create(carritoId, dto);
   }
 
@@ -50,7 +50,7 @@ export class PedidosController {
   })
   @ApiResponse({ status: 200, type: GetPedidoDto })
   @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
-  findOne(@Param('id') id: string): GetPedidoDto {
+  findOne(@Param('id') id: string): Promise<GetPedidoDto> {
     return this.pedidosService.findOne(id);
   }
 
@@ -60,7 +60,7 @@ export class PedidosController {
   })
   @ApiResponse({ status: 200, type: SeguimientoPedidoDto })
   @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
-  getSeguimiento(@Param('id') id: string): SeguimientoPedidoDto {
+  getSeguimiento(@Param('id') id: string): Promise<SeguimientoPedidoDto> {
     return this.pedidosService.getSeguimiento(id);
   }
 }

@@ -12,7 +12,7 @@ export class CatalogoController {
 
   @Get()
   @ApiOperation({ summary: 'Obtener todo el catálogo (productos y servicios)' })
-  findAll(): (GetProductoDto | GetServicioDto)[] {
+  findAll(): Promise<(GetProductoDto | GetServicioDto)[]> {
     return this.catalogoService.findAll();
   }
 
@@ -39,7 +39,9 @@ export class CatalogoController {
     type: Number,
     description: 'Edad de la mascota en años',
   })
-  findCompatible(@Query() q: CompatibilidadQueryDto) {
+  findCompatible(
+    @Query() q: CompatibilidadQueryDto,
+  ): Promise<(GetProductoDto | GetServicioDto)[]> {
     return this.catalogoService.findAllCompatible(q.especie, q.edad);
   }
 }

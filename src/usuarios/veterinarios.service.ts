@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Veterinario } from './entities/veterinario.entity';
 import { CreateVeterinarioDto } from './dto/create-veterinario.dto';
 import { GetVeterinarioDto } from './dto/get-veterinario.dto';
@@ -8,24 +11,36 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class VeterinariosService {
-  private veterinarios: Veterinario[] = [];
+  constructor(
+    @InjectRepository(Veterinario)
+    private readonly veterinariosRepo: Repository<Veterinario>,
+  ) {}
 
-  create(createVeterinarioDto: CreateVeterinarioDto): GetVeterinarioDto {
-    const newVeterinario: Veterinario = {
+  async create(
+    createVeterinarioDto: CreateVeterinarioDto,
+  ): Promise<GetVeterinarioDto> {
+    const hashedPassword = createVeterinarioDto.password
+      ? await bcrypt.hash(createVeterinarioDto.password, 10)
+      : undefined;
+
+    const newVeterinario = this.veterinariosRepo.create({
       id: `vet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createVeterinarioDto,
+      password: hashedPassword,
       fechaNacimiento: new Date(createVeterinarioDto.fechaNacimiento),
-    };
-    this.veterinarios.push(newVeterinario);
-    return this.mapToGetDto(newVeterinario);
+      rol: 'VETERINARIO',
+    });
+    const saved = await this.veterinariosRepo.save(newVeterinario);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetVeterinarioDto[] {
-    return this.veterinarios.map((v) => this.mapToGetDto(v));
+  async findAll(): Promise<GetVeterinarioDto[]> {
+    const list = await this.veterinariosRepo.find();
+    return list.map((v) => this.mapToGetDto(v));
   }
 
-  findOne(id: string): GetVeterinarioDto {
-    const veterinario = this.veterinarios.find((v) => v.id === id);
+  async findOne(id: string): Promise<GetVeterinarioDto> {
+    const veterinario = await this.veterinariosRepo.findOne({ where: { id } });
     if (!veterinario) {
       throw new RecursoNoEncontradoError(
         `Veterinario con ID ${id} no encontrado`,
@@ -34,8 +49,8 @@ export class VeterinariosService {
     return this.mapToGetDto(veterinario);
   }
 
-  findOneEntity(id: string): Veterinario {
-    const veterinario = this.veterinarios.find((v) => v.id === id);
+  async findOneEntity(id: string): Promise<Veterinario> {
+    const veterinario = await this.veterinariosRepo.findOne({ where: { id } });
     if (!veterinario) {
       throw new RecursoNoEncontradoError(
         `Veterinario con ID ${id} no encontrado`,
@@ -44,35 +59,33 @@ export class VeterinariosService {
     return veterinario;
   }
 
-  update(
-    id: string,
-    updateVeterinarioDto: UpdateVeterinarioDto,
-  ): GetVeterinarioDto {
-    const vetIndex = this.veterinarios.findIndex((v) => v.id === id);
-    if (vetIndex === -1) {
-      throw new RecursoNoEncontradoError(
-        `Veterinario con ID ${id} no encontrado`,
-      );
-    }
-    const updatedVet: Veterinario = {
-      ...this.veterinarios[vetIndex],
-      ...updateVeterinarioDto,
-      fechaNacimiento: updateVeterinarioDto.fechaNacimiento
-        ? new Date(updateVeterinarioDto.fechaNacimiento)
-        : this.veterinarios[vetIndex].fechaNacimiento,
-    };
-    this.veterinarios[vetIndex] = updatedVet;
-    return this.mapToGetDto(updatedVet);
+  async findByEmail(correoElectronico: string): Promise<Veterinario | null> {
+    return this.veterinariosRepo.findOne({ where: { correoElectronico } });
   }
 
-  remove(id: string): { message: string } {
-    const vetIndex = this.veterinarios.findIndex((v) => v.id === id);
-    if (vetIndex === -1) {
-      throw new RecursoNoEncontradoError(
-        `Veterinario con ID ${id} no encontrado`,
-      );
-    }
-    this.veterinarios.splice(vetIndex, 1);
+  async update(
+    id: string,
+    updateVeterinarioDto: UpdateVeterinarioDto,
+  ): Promise<GetVeterinarioDto> {
+    const existing = await this.findOneEntity(id);
+    const hashedPassword = updateVeterinarioDto.password
+      ? await bcrypt.hash(updateVeterinarioDto.password, 10)
+      : existing.password;
+
+    const updatedVet = this.veterinariosRepo.merge(existing, {
+      ...updateVeterinarioDto,
+      password: hashedPassword,
+      fechaNacimiento: updateVeterinarioDto.fechaNacimiento
+        ? new Date(updateVeterinarioDto.fechaNacimiento)
+        : existing.fechaNacimiento,
+    });
+    const saved = await this.veterinariosRepo.save(updatedVet);
+    return this.mapToGetDto(saved);
+  }
+
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.veterinariosRepo.remove(existing);
     return { message: `Veterinario con ID ${id} eliminado correctamente` };
   }
 

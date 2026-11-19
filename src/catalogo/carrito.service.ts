@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Carrito, ItemCarrito } from './entities/carrito.entity';
 import {
   AgregarAlCarritoDto,
@@ -14,9 +16,6 @@ import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
 
 @Injectable()
 export class CarritoService {
-  // Manejo de carritos por usuario (o 'invitado' por defecto)
-  private carritos: Map<string, Carrito> = new Map();
-
   // Cupones válidos de ejemplo para la tienda
   private cuponesValidos: Record<
     string,
@@ -27,40 +26,56 @@ export class CarritoService {
     VERANO: { tipo: 'porcentaje', valor: 15 },
   };
 
-  constructor(private readonly productosService: ProductosService) {}
+  constructor(
+    @InjectRepository(Carrito)
+    private readonly carritosRepo: Repository<Carrito>,
+    @InjectRepository(ItemCarrito)
+    private readonly itemsRepo: Repository<ItemCarrito>,
+    private readonly productosService: ProductosService,
+  ) {}
 
-  crear(): GetCarritoDto {
-    const carrito: Carrito = {
+  async crear(): Promise<GetCarritoDto> {
+    const carrito = this.carritosRepo.create({
       id: randomUUID(),
       items: [],
       descuentoCupon: 0,
       subtotal: 0,
       totalArticulos: 0,
       total: 0,
-    };
-    this.carritos.set(carrito.id, carrito);
-    return this.mapToDto(carrito);
+    });
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  obtener(carritoId: string): Carrito {
-    const carrito = this.carritos.get(carritoId);
+  async obtener(carritoId: string): Promise<Carrito> {
+    const carrito = await this.carritosRepo.findOne({
+      where: { id: carritoId },
+      relations: { items: true },
+    });
     if (!carrito) {
       throw new RecursoNoEncontradoError(
         `El carrito con ID ${carritoId} no existe.`,
       );
     }
+    if (!carrito.items) {
+      carrito.items = [];
+    }
     return carrito;
   }
 
-  getCarrito(carritoId: string): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
+  async getCarrito(carritoId: string): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
     this.recalcularTotales(carrito);
+    await this.carritosRepo.save(carrito);
     return this.mapToDto(carrito);
   }
 
-  addItem(carritoId: string, dto: AgregarAlCarritoDto): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
-    const producto = this.productosService.findOneEntity(dto.productoId);
+  async addItem(
+    carritoId: string,
+    dto: AgregarAlCarritoDto,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    const producto = await this.productosService.findOneEntity(dto.productoId);
     const cantidad = dto.cantidad ?? 1;
 
     const itemExistente = carrito.items.find(
@@ -76,8 +91,10 @@ export class CarritoService {
       itemExistente.cantidad = cantidadTotal;
       itemExistente.subtotal =
         itemExistente.cantidad * itemExistente.precioUnitario;
+      await this.itemsRepo.save(itemExistente);
     } else {
-      const nuevoItem: ItemCarrito = {
+      const nuevoItem = this.itemsRepo.create({
+        carritoId: carrito.id,
         productoId: producto.id,
         nombre: producto.nombre,
         marca: producto.marca,
@@ -86,20 +103,22 @@ export class CarritoService {
         precioUnitario: producto.precio,
         cantidad,
         subtotal: cantidad * producto.precio,
-      };
-      carrito.items.push(nuevoItem);
+      });
+      const savedItem = await this.itemsRepo.save(nuevoItem);
+      carrito.items.push(savedItem);
     }
 
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  updateQuantity(
+  async updateQuantity(
     carritoId: string,
     productoId: string,
     dto: ActualizarCantidadItemDto,
-  ): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
     const item = carrito.items.find((it) => it.productoId === productoId);
 
     if (!item) {
@@ -108,27 +127,40 @@ export class CarritoService {
       );
     }
 
-    const producto = this.productosService.findOneEntity(productoId);
+    const producto = await this.productosService.findOneEntity(productoId);
     if (producto.stock < dto.cantidad) {
       throw new StockInsuficienteError(producto.stock, producto.nombre);
     }
 
     item.cantidad = dto.cantidad;
     item.subtotal = item.cantidad * item.precioUnitario;
+    await this.itemsRepo.save(item);
 
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  removeItem(carritoId: string, productoId: string): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
+  async removeItem(
+    carritoId: string,
+    productoId: string,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    const item = carrito.items.find((it) => it.productoId === productoId);
+    if (item && item.id) {
+      await this.itemsRepo.delete(item.id);
+    }
     carrito.items = carrito.items.filter((it) => it.productoId !== productoId);
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  aplicarCupon(carritoId: string, dto: AplicarCuponDto): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
+  async aplicarCupon(
+    carritoId: string,
+    dto: AplicarCuponDto,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
 
     const cuponUpper = dto.codigoCupon.trim().toUpperCase();
     if (!this.cuponesValidos[cuponUpper]) {
@@ -139,25 +171,37 @@ export class CarritoService {
 
     carrito.cuponAplicado = cuponUpper;
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  removerCupon(carritoId: string): GetCarritoDto {
-    const carrito = this.obtener(carritoId);
-    delete carrito.cuponAplicado;
+  async removerCupon(carritoId: string): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    carrito.cuponAplicado = undefined;
     carrito.descuentoCupon = 0;
     this.recalcularTotales(carrito);
+    await this.carritosRepo.update(carrito.id, {
+      cuponAplicado: null as unknown as undefined,
+      descuentoCupon: 0,
+      subtotal: carrito.subtotal,
+      totalArticulos: carrito.totalArticulos,
+      total: carrito.total,
+    });
     return this.mapToDto(carrito);
   }
 
-  cerrar(carritoId: string): void {
-    this.carritos.delete(carritoId);
+  async cerrar(carritoId: string): Promise<void> {
+    await this.itemsRepo.delete({ carritoId });
+    await this.carritosRepo.delete(carritoId);
   }
 
   private recalcularTotales(carrito: Carrito): void {
-    carrito.subtotal = carrito.items.reduce((acc, it) => acc + it.subtotal, 0);
+    carrito.subtotal = carrito.items.reduce(
+      (acc, it) => acc + Number(it.subtotal),
+      0,
+    );
     carrito.totalArticulos = carrito.items.reduce(
-      (acc, it) => acc + it.cantidad,
+      (acc, it) => acc + Number(it.cantidad),
       0,
     );
 
@@ -178,10 +222,19 @@ export class CarritoService {
   private mapToDto(carrito: Carrito): GetCarritoDto {
     return {
       id: carrito.id,
-      items: carrito.items.map((it) => ({ ...it })),
+      items: (carrito.items || []).map((it) => ({
+        productoId: it.productoId,
+        nombre: it.nombre,
+        marca: it.marca,
+        imagen: it.imagen,
+        precioOriginal: it.precioOriginal,
+        precioUnitario: it.precioUnitario,
+        cantidad: it.cantidad,
+        subtotal: it.subtotal,
+      })),
       totalArticulos: carrito.totalArticulos,
       subtotal: carrito.subtotal,
-      cuponAplicado: carrito.cuponAplicado,
+      cuponAplicado: carrito.cuponAplicado ?? undefined,
       descuentoCupon: carrito.descuentoCupon,
       total: carrito.total,
     };

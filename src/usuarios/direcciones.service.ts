@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { DireccionUsuario } from './entities/direccion.entity';
 import { CreateDireccionDto, GetDireccionDto } from './dto/direccion.dto';
 import { DueniosService } from './duenios.service';
@@ -6,25 +8,32 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class DireccionesService {
-  private direcciones: DireccionUsuario[] = [];
+  constructor(
+    @InjectRepository(DireccionUsuario)
+    private readonly direccionesRepo: Repository<DireccionUsuario>,
+    private readonly dueniosService: DueniosService,
+  ) {}
 
-  constructor(private readonly dueniosService: DueniosService) {}
+  async create(
+    usuarioId: string,
+    dto: CreateDireccionDto,
+  ): Promise<GetDireccionDto> {
+    await this.dueniosService.findOne(usuarioId);
 
-  create(usuarioId: string, dto: CreateDireccionDto): GetDireccionDto {
-    this.dueniosService.findOne(usuarioId); // Valida existencia del usuario
-
-    const usuarioDirecciones = this.direcciones.filter(
-      (d) => d.usuarioId === usuarioId,
-    );
+    const usuarioDirecciones = await this.direccionesRepo.find({
+      where: { usuarioId },
+    });
     const esPrimera = usuarioDirecciones.length === 0;
     const esPred = dto.esPredeterminada ?? esPrimera;
 
-    if (esPred) {
-      // Desmarcar anteriores
-      usuarioDirecciones.forEach((d) => (d.esPredeterminada = false));
+    if (esPred && usuarioDirecciones.length > 0) {
+      await this.direccionesRepo.update(
+        { usuarioId },
+        { esPredeterminada: false },
+      );
     }
 
-    const nuevaDireccion: DireccionUsuario = {
+    const nuevaDireccion = this.direccionesRepo.create({
       id: `dir-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       usuarioId,
       direccion: dto.direccion,
@@ -33,52 +42,68 @@ export class DireccionesService {
       region: dto.region,
       referencia: dto.referencia,
       esPredeterminada: esPred,
-    };
+    });
 
-    this.direcciones.push(nuevaDireccion);
-    return this.mapToDto(nuevaDireccion);
+    const saved = await this.direccionesRepo.save(nuevaDireccion);
+    return this.mapToDto(saved);
   }
 
-  findByUsuario(usuarioId: string): GetDireccionDto[] {
-    this.dueniosService.findOne(usuarioId);
-    return this.direcciones
-      .filter((d) => d.usuarioId === usuarioId)
-      .map((d) => this.mapToDto(d));
+  async findByUsuario(usuarioId: string): Promise<GetDireccionDto[]> {
+    await this.dueniosService.findOne(usuarioId);
+    const list = await this.direccionesRepo.find({ where: { usuarioId } });
+    return list.map((d) => this.mapToDto(d));
   }
 
-  setPredeterminada(usuarioId: string, direccionId: string): GetDireccionDto {
-    this.dueniosService.findOne(usuarioId);
-    const dir = this.direcciones.find(
-      (d) => d.id === direccionId && d.usuarioId === usuarioId,
-    );
+  async setPredeterminada(
+    usuarioId: string,
+    direccionId: string,
+  ): Promise<GetDireccionDto> {
+    await this.dueniosService.findOne(usuarioId);
+    const dir = await this.direccionesRepo.findOne({
+      where: { id: direccionId, usuarioId },
+    });
     if (!dir) {
       throw new RecursoNoEncontradoError(
         `Dirección con ID ${direccionId} no encontrada`,
       );
     }
 
-    this.direcciones
-      .filter((d) => d.usuarioId === usuarioId)
-      .forEach((d) => (d.esPredeterminada = false));
+    await this.direccionesRepo.update(
+      { usuarioId },
+      { esPredeterminada: false },
+    );
 
     dir.esPredeterminada = true;
-    return this.mapToDto(dir);
+    const saved = await this.direccionesRepo.save(dir);
+    return this.mapToDto(saved);
   }
 
-  remove(usuarioId: string, direccionId: string): { message: string } {
-    const idx = this.direcciones.findIndex(
-      (d) => d.id === direccionId && d.usuarioId === usuarioId,
-    );
-    if (idx === -1) {
+  async remove(
+    usuarioId: string,
+    direccionId: string,
+  ): Promise<{ message: string }> {
+    const dir = await this.direccionesRepo.findOne({
+      where: { id: direccionId, usuarioId },
+    });
+    if (!dir) {
       throw new RecursoNoEncontradoError(
         `Dirección con ID ${direccionId} no encontrada`,
       );
     }
-    this.direcciones.splice(idx, 1);
+    await this.direccionesRepo.remove(dir);
     return { message: 'Dirección eliminada correctamente' };
   }
 
   private mapToDto(d: DireccionUsuario): GetDireccionDto {
-    return { ...d };
+    return {
+      id: d.id,
+      usuarioId: d.usuarioId,
+      direccion: d.direccion,
+      departamentoOficina: d.departamentoOficina,
+      comuna: d.comuna,
+      region: d.region,
+      referencia: d.referencia,
+      esPredeterminada: d.esPredeterminada,
+    };
   }
 }

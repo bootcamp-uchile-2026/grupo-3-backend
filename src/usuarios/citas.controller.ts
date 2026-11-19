@@ -12,8 +12,10 @@ import { CitasService } from './citas.service';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
 import { UpdateCitaDto } from './dto/update-cita.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Usuarios - Agenda de Citas')
+@Auth()
 @Controller('usuarios/citas')
 export class CitasController {
   constructor(private readonly citasService: CitasService) {}
@@ -21,28 +23,28 @@ export class CitasController {
   @Post()
   @ApiOperation({ summary: 'Reservar/Agendar una nueva cita' })
   @ApiResponse({ status: 201, type: GetCitaDto })
-  create(@Body() createCitaDto: CreateCitaDto): GetCitaDto {
+  create(@Body() createCitaDto: CreateCitaDto): Promise<GetCitaDto> {
     return this.citasService.create(createCitaDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todas las citas programadas' })
   @ApiResponse({ status: 200, type: [GetCitaDto] })
-  findAll(): GetCitaDto[] {
+  findAll(): Promise<GetCitaDto[]> {
     return this.citasService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una cita por ID' })
   @ApiResponse({ status: 200, type: GetCitaDto })
-  findOne(@Param('id') id: string): GetCitaDto {
+  findOne(@Param('id') id: string): Promise<GetCitaDto> {
     return this.citasService.findOne(id);
   }
 
   @Get('duenio/:duenioId')
   @ApiOperation({ summary: 'Obtener citas de un dueño específico' })
   @ApiResponse({ status: 200, type: [GetCitaDto] })
-  findByDuenio(@Param('duenioId') duenioId: string): GetCitaDto[] {
+  findByDuenio(@Param('duenioId') duenioId: string): Promise<GetCitaDto[]> {
     return this.citasService.findByDuenio(duenioId);
   }
 
@@ -51,14 +53,14 @@ export class CitasController {
   @ApiResponse({ status: 200, type: [GetCitaDto] })
   findByVeterinario(
     @Param('veterinarioId') veterinarioId: string,
-  ): GetCitaDto[] {
+  ): Promise<GetCitaDto[]> {
     return this.citasService.findByVeterinario(veterinarioId);
   }
 
   @Get('mascota/:mascotaId')
   @ApiOperation({ summary: 'Obtener citas de una mascota específica' })
   @ApiResponse({ status: 200, type: [GetCitaDto] })
-  findByMascota(@Param('mascotaId') mascotaId: string): GetCitaDto[] {
+  findByMascota(@Param('mascotaId') mascotaId: string): Promise<GetCitaDto[]> {
     return this.citasService.findByMascota(mascotaId);
   }
 
@@ -68,7 +70,7 @@ export class CitasController {
   update(
     @Param('id') id: string,
     @Body() updateCitaDto: UpdateCitaDto,
-  ): GetCitaDto {
+  ): Promise<GetCitaDto> {
     return this.citasService.update(id, updateCitaDto);
   }
 

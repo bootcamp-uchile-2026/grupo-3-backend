@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Receta } from './entities/receta.entity';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { GetRecetaDto } from './dto/get-receta.dto';
@@ -9,78 +11,79 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class RecetasService {
-  private recetas: Receta[] = [];
-
   constructor(
+    @InjectRepository(Receta)
+    private readonly recetasRepo: Repository<Receta>,
     private readonly consultasService: ConsultasService,
     private readonly productosService: ProductosService,
   ) {}
 
-  create(createRecetaDto: CreateRecetaDto): GetRecetaDto {
+  async create(createRecetaDto: CreateRecetaDto): Promise<GetRecetaDto> {
     // 1. Validar que la consulta exista
-    this.consultasService.findOne(createRecetaDto.consultaId);
+    await this.consultasService.findOne(createRecetaDto.consultaId);
 
     // 2. Validar que todos los productos prescritos existan en el catálogo
     for (const prodId of createRecetaDto.productosPrescritosIds) {
-      this.productosService.findOne(prodId);
+      await this.productosService.findOne(prodId);
     }
 
     // 3. Crear receta
-    const newReceta: Receta = {
+    const newReceta = this.recetasRepo.create({
       id: `receta-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createRecetaDto,
       fechaEmision: new Date(),
-    };
-    this.recetas.push(newReceta);
+    });
+    const saved = await this.recetasRepo.save(newReceta);
 
     // 4. Asociar receta a la consulta
-    this.consultasService.setReceta(createRecetaDto.consultaId, newReceta.id);
+    await this.consultasService.setReceta(createRecetaDto.consultaId, saved.id);
 
-    return this.mapToGetDto(newReceta);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetRecetaDto[] {
-    return this.recetas.map((r) => this.mapToGetDto(r));
+  async findAll(): Promise<GetRecetaDto[]> {
+    const list = await this.recetasRepo.find();
+    return list.map((r) => this.mapToGetDto(r));
   }
 
-  findOne(id: string): GetRecetaDto {
-    const receta = this.recetas.find((r) => r.id === id);
+  async findOne(id: string): Promise<GetRecetaDto> {
+    const receta = await this.recetasRepo.findOne({ where: { id } });
     if (!receta) {
       throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(receta);
   }
 
-  update(id: string, updateRecetaDto: UpdateRecetaDto): GetRecetaDto {
-    const recIndex = this.recetas.findIndex((r) => r.id === id);
-    if (recIndex === -1) {
+  async update(
+    id: string,
+    updateRecetaDto: UpdateRecetaDto,
+  ): Promise<GetRecetaDto> {
+    const existing = await this.recetasRepo.findOne({ where: { id } });
+    if (!existing) {
       throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
 
     if (updateRecetaDto.consultaId) {
-      this.consultasService.findOne(updateRecetaDto.consultaId);
+      await this.consultasService.findOne(updateRecetaDto.consultaId);
     }
 
     if (updateRecetaDto.productosPrescritosIds) {
       for (const prodId of updateRecetaDto.productosPrescritosIds) {
-        this.productosService.findOne(prodId);
+        await this.productosService.findOne(prodId);
       }
     }
 
-    const updatedReceta = {
-      ...this.recetas[recIndex],
-      ...updateRecetaDto,
-    };
-    this.recetas[recIndex] = updatedReceta;
-    return this.mapToGetDto(updatedReceta);
+    const updatedReceta = this.recetasRepo.merge(existing, updateRecetaDto);
+    const saved = await this.recetasRepo.save(updatedReceta);
+    return this.mapToGetDto(saved);
   }
 
-  remove(id: string): { message: string } {
-    const recIndex = this.recetas.findIndex((r) => r.id === id);
-    if (recIndex === -1) {
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.recetasRepo.findOne({ where: { id } });
+    if (!existing) {
       throw new RecursoNoEncontradoError(`Receta con ID ${id} no encontrada`);
     }
-    this.recetas.splice(recIndex, 1);
+    await this.recetasRepo.remove(existing);
     return { message: `Receta con ID ${id} eliminada correctamente` };
   }
 

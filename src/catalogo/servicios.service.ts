@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Servicio } from './entities/servicio.entity';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { GetServicioDto } from './dto/get-servicio.dto';
@@ -7,57 +9,55 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class ServiciosService {
-  private servicios: Servicio[] = [];
+  constructor(
+    @InjectRepository(Servicio)
+    private readonly serviciosRepo: Repository<Servicio>,
+  ) {}
 
-  create(createServicioDto: CreateServicioDto): GetServicioDto {
-    const newServicio: Servicio = {
+  async create(createServicioDto: CreateServicioDto): Promise<GetServicioDto> {
+    const newServicio = this.serviciosRepo.create({
       id: `serv-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       tipo: 'Servicio',
       ...createServicioDto,
-    };
-    this.servicios.push(newServicio);
-    return this.mapToGetDto(newServicio);
+    });
+    const saved = await this.serviciosRepo.save(newServicio);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetServicioDto[] {
-    return this.servicios.map((s) => this.mapToGetDto(s));
+  async findAll(): Promise<GetServicioDto[]> {
+    const list = await this.serviciosRepo.find();
+    return list.map((s) => this.mapToGetDto(s));
   }
 
-  findOne(id: string): GetServicioDto {
-    const servicio = this.servicios.find((s) => s.id === id);
+  async findOne(id: string): Promise<GetServicioDto> {
+    const servicio = await this.serviciosRepo.findOne({ where: { id } });
     if (!servicio) {
       throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(servicio);
   }
 
-  findOneEntity(id: string): Servicio {
-    const servicio = this.servicios.find((s) => s.id === id);
+  async findOneEntity(id: string): Promise<Servicio> {
+    const servicio = await this.serviciosRepo.findOne({ where: { id } });
     if (!servicio) {
       throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
     }
     return servicio;
   }
 
-  update(id: string, updateServicioDto: UpdateServicioDto): GetServicioDto {
-    const servIndex = this.servicios.findIndex((s) => s.id === id);
-    if (servIndex === -1) {
-      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
-    }
-    const updatedServ = {
-      ...this.servicios[servIndex],
-      ...updateServicioDto,
-    };
-    this.servicios[servIndex] = updatedServ;
-    return this.mapToGetDto(updatedServ);
+  async update(
+    id: string,
+    updateServicioDto: UpdateServicioDto,
+  ): Promise<GetServicioDto> {
+    const existing = await this.findOneEntity(id);
+    const updatedServ = this.serviciosRepo.merge(existing, updateServicioDto);
+    const saved = await this.serviciosRepo.save(updatedServ);
+    return this.mapToGetDto(saved);
   }
 
-  remove(id: string): { message: string } {
-    const servIndex = this.servicios.findIndex((s) => s.id === id);
-    if (servIndex === -1) {
-      throw new RecursoNoEncontradoError(`Servicio con ID ${id} no encontrado`);
-    }
-    this.servicios.splice(servIndex, 1);
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.serviciosRepo.remove(existing);
     return { message: `Servicio con ID ${id} eliminado correctamente` };
   }
 

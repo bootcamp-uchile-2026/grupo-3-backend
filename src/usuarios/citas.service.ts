@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AgendaCitas } from './entities/cita.entity';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
@@ -11,30 +13,28 @@ import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado
 
 @Injectable()
 export class CitasService {
-  private citas: AgendaCitas[] = [];
-
   constructor(
+    @InjectRepository(AgendaCitas)
+    private readonly citasRepo: Repository<AgendaCitas>,
     private readonly dueniosService: DueniosService,
     private readonly veterinariosService: VeterinariosService,
     private readonly mascotasService: MascotasService,
   ) {}
 
-  create(createCitaDto: CreateCitaDto): GetCitaDto {
-    // Validar que el dueño y el veterinario existan
-    this.dueniosService.findOne(createCitaDto.duenioId);
-    this.veterinariosService.findOne(createCitaDto.veterinarioId);
+  async create(createCitaDto: CreateCitaDto): Promise<GetCitaDto> {
+    await this.dueniosService.findOne(createCitaDto.duenioId);
+    await this.veterinariosService.findOne(createCitaDto.veterinarioId);
 
-    // Validar que la mascota exista
-    const mascota = this.mascotasService.findOneEntity(createCitaDto.mascotaId);
+    const mascota = await this.mascotasService.findOneEntity(
+      createCitaDto.mascotaId,
+    );
 
-    // Validar que la mascota pertenezca al dueño
     if (mascota.duenioId !== createCitaDto.duenioId) {
       throw new ReglaNegocioError(
         `La mascota con ID ${createCitaDto.mascotaId} no pertenece al dueño con ID ${createCitaDto.duenioId}`,
       );
     }
 
-    //Validar que al menos la fecha de cita sea con el dia de hoy y no en pasado.
     const fechaCita = new Date(createCitaDto.fechaCita);
     if (fechaCita.getTime() < Date.now()) {
       throw new ReglaNegocioError(
@@ -42,78 +42,71 @@ export class CitasService {
       );
     }
 
-    const newCita: AgendaCitas = {
+    const newCita = this.citasRepo.create({
       id: `cita-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createCitaDto,
-      fechaCita: new Date(createCitaDto.fechaCita),
-    };
-    this.citas.push(newCita);
-    return this.mapToGetDto(newCita);
+      fechaCita,
+    });
+    const saved = await this.citasRepo.save(newCita);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(): GetCitaDto[] {
-    return this.citas.map((c) => this.mapToGetDto(c));
+  async findAll(): Promise<GetCitaDto[]> {
+    const list = await this.citasRepo.find();
+    return list.map((c) => this.mapToGetDto(c));
   }
 
-  findOne(id: string): GetCitaDto {
-    const cita = this.citas.find((c) => c.id === id);
+  async findOne(id: string): Promise<GetCitaDto> {
+    const cita = await this.citasRepo.findOne({ where: { id } });
     if (!cita) {
       throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
     return this.mapToGetDto(cita);
   }
 
-  findOneEntity(id: string): AgendaCitas {
-    const cita = this.citas.find((c) => c.id === id);
+  async findOneEntity(id: string): Promise<AgendaCitas> {
+    const cita = await this.citasRepo.findOne({ where: { id } });
     if (!cita) {
       throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
     }
     return cita;
   }
 
-  findByDuenio(duenioId: string): GetCitaDto[] {
-    this.dueniosService.findOne(duenioId);
-    return this.citas
-      .filter((c) => c.duenioId === duenioId)
-      .map((c) => this.mapToGetDto(c));
+  async findByDuenio(duenioId: string): Promise<GetCitaDto[]> {
+    await this.dueniosService.findOne(duenioId);
+    const list = await this.citasRepo.find({ where: { duenioId } });
+    return list.map((c) => this.mapToGetDto(c));
   }
 
-  findByVeterinario(veterinarioId: string): GetCitaDto[] {
-    this.veterinariosService.findOne(veterinarioId);
-    return this.citas
-      .filter((c) => c.veterinarioId === veterinarioId)
-      .map((c) => this.mapToGetDto(c));
+  async findByVeterinario(veterinarioId: string): Promise<GetCitaDto[]> {
+    await this.veterinariosService.findOne(veterinarioId);
+    const list = await this.citasRepo.find({ where: { veterinarioId } });
+    return list.map((c) => this.mapToGetDto(c));
   }
 
-  findByMascota(mascotaId: string): GetCitaDto[] {
-    this.mascotasService.findOne(mascotaId);
-    return this.citas
-      .filter((c) => c.mascotaId === mascotaId)
-      .map((c) => this.mapToGetDto(c));
+  async findByMascota(mascotaId: string): Promise<GetCitaDto[]> {
+    await this.mascotasService.findOne(mascotaId);
+    const list = await this.citasRepo.find({ where: { mascotaId } });
+    return list.map((c) => this.mapToGetDto(c));
   }
 
-  update(id: string, updateCitaDto: UpdateCitaDto): GetCitaDto {
-    const citaIndex = this.citas.findIndex((c) => c.id === id);
-    if (citaIndex === -1) {
-      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
-    }
-
-    const currentCita = this.citas[citaIndex];
+  async update(id: string, updateCitaDto: UpdateCitaDto): Promise<GetCitaDto> {
+    const currentCita = await this.findOneEntity(id);
     const targetDuenioId = updateCitaDto.duenioId ?? currentCita.duenioId;
     const targetMascotaId = updateCitaDto.mascotaId ?? currentCita.mascotaId;
 
     if (updateCitaDto.duenioId) {
-      this.dueniosService.findOne(updateCitaDto.duenioId);
+      await this.dueniosService.findOne(updateCitaDto.duenioId);
     }
     if (updateCitaDto.veterinarioId) {
-      this.veterinariosService.findOne(updateCitaDto.veterinarioId);
+      await this.veterinariosService.findOne(updateCitaDto.veterinarioId);
     }
     if (updateCitaDto.mascotaId) {
-      this.mascotasService.findOne(updateCitaDto.mascotaId);
+      await this.mascotasService.findOne(updateCitaDto.mascotaId);
     }
 
     if (updateCitaDto.duenioId || updateCitaDto.mascotaId) {
-      const mascota = this.mascotasService.findOneEntity(targetMascotaId);
+      const mascota = await this.mascotasService.findOneEntity(targetMascotaId);
       if (mascota.duenioId !== targetDuenioId) {
         throw new ReglaNegocioError(
           `La mascota con ID ${targetMascotaId} no pertenece al dueño con ID ${targetDuenioId}`,
@@ -121,23 +114,19 @@ export class CitasService {
       }
     }
 
-    const updatedCita: AgendaCitas = {
-      ...currentCita,
+    const updatedCita = this.citasRepo.merge(currentCita, {
       ...updateCitaDto,
       fechaCita: updateCitaDto.fechaCita
         ? new Date(updateCitaDto.fechaCita)
         : currentCita.fechaCita,
-    };
-    this.citas[citaIndex] = updatedCita;
-    return this.mapToGetDto(updatedCita);
+    });
+    const saved = await this.citasRepo.save(updatedCita);
+    return this.mapToGetDto(saved);
   }
 
-  remove(id: string): { message: string } {
-    const citaIndex = this.citas.findIndex((c) => c.id === id);
-    if (citaIndex === -1) {
-      throw new RecursoNoEncontradoError(`Cita con ID ${id} no encontrada`);
-    }
-    this.citas.splice(citaIndex, 1);
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.citasRepo.remove(existing);
     return { message: `Cita con ID ${id} eliminada correctamente` };
   }
 

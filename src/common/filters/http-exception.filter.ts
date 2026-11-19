@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { RecursoNoEncontradoError } from '../errors/recurso-noEncontrado.error';
 import { StockInsuficienteError } from '../errors/stock-insuficiente.error';
 import { ReglaNegocioError } from '../errors/regla-negocio.error';
+import { CredencialesInvalidasError } from '../errors/credenciales-invalidas.error';
 
 /**
  * Filtro global que transforma cualquier excepción en una respuesta HTTP
@@ -52,6 +53,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof ReglaNegocioError) {
       status = HttpStatus.BAD_REQUEST;
       error = 'Bad Request';
+      message = exception.message;
+    } else if (exception instanceof CredencialesInvalidasError){
+      status = HttpStatus.UNAUTHORIZED;
+      error = 'Unauthorized';
       message = exception.message;
     } else {
       // Errores inesperados: se registran con su detalle, pero no se exponen al cliente

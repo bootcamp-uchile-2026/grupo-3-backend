@@ -10,8 +10,10 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DireccionesService } from './direcciones.service';
 import { CreateDireccionDto, GetDireccionDto } from './dto/direccion.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Usuarios - Libreta de Direcciones')
+@Auth()
 @Controller('usuarios')
 export class DireccionesController {
   constructor(private readonly direccionesService: DireccionesService) {}
@@ -21,7 +23,9 @@ export class DireccionesController {
     summary: 'Obtener todas las direcciones guardadas de un usuario',
   })
   @ApiResponse({ status: 200, type: [GetDireccionDto] })
-  findByUsuario(@Param('usuarioId') usuarioId: string): GetDireccionDto[] {
+  findByUsuario(
+    @Param('usuarioId') usuarioId: string,
+  ): Promise<GetDireccionDto[]> {
     return this.direccionesService.findByUsuario(usuarioId);
   }
 
@@ -33,7 +37,7 @@ export class DireccionesController {
   create(
     @Param('usuarioId') usuarioId: string,
     @Body() dto: CreateDireccionDto,
-  ): GetDireccionDto {
+  ): Promise<GetDireccionDto> {
     return this.direccionesService.create(usuarioId, dto);
   }
 
@@ -43,7 +47,7 @@ export class DireccionesController {
   setPredeterminada(
     @Param('usuarioId') usuarioId: string,
     @Param('direccionId') direccionId: string,
-  ): GetDireccionDto {
+  ): Promise<GetDireccionDto> {
     return this.direccionesService.setPredeterminada(usuarioId, direccionId);
   }
 
