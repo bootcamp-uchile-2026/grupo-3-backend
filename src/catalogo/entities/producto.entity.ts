@@ -1,84 +1,64 @@
-import { ProductoServicio } from './producto-servicio.entity';
-import { ApiProperty } from '@nestjs/swagger';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Categoria } from './categoria.entity';
+import { Especie } from '../../common/entities/especie.entity';
+import { ProductoImagen } from './producto-imagen.entity';
 
-export class Producto extends ProductoServicio {
-  @ApiProperty({
-    description: 'Código único de inventario (SKU)',
-    example: '78796584755',
-  })
+@Entity('productos')
+export class Producto {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 50, unique: true })
   sku: string;
 
-  @ApiProperty({
-    description: 'Stock actual disponible en inventario',
-    example: 50,
-  })
+  @Column({ type: 'varchar', length: 150 })
+  nombre: string;
+
+  @Column({ type: 'text' })
+  descripcion: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  marca: string;
+
+  @ManyToOne(() => Categoria, { nullable: false })
+  @JoinColumn({ name: 'categoria_id' })
+  categoria: Categoria;
+
+  @ManyToOne(() => Especie, { nullable: true })
+  @JoinColumn({ name: 'especie_id' })
+  especie: Especie | null;
+
+  @Column({ type: 'int' })
+  precio: number;
+
+  @Column({ name: 'precio_original', type: 'int', nullable: true })
+  precioOriginal: number | null;
+
+  @Column({ type: 'int', default: 0 })
   stock: number;
 
-  @ApiProperty({
-    description: 'Galería de imágenes del producto (URLs)',
-    type: [String],
-    example: ['https://example.com/foto1.jpg', 'https://example.com/foto2.jpg'],
-  })
-  imagenes: string[];
+  @Column({ type: 'int', default: 1 })
+  cantidad: number;
 
-  @ApiProperty({
-    description:
-      'Categoría principal (ej. Alimento, Accesorio, Salud, Farmacia)',
-    example: 'Salud y bienestar',
-  })
-  categoria: string;
+  //Esta propiedad debe ser revisada en proxima entrega dado que aca este descuento lo debe ingresar cliente y el precio no ya que deberia ser calculado por backend
+  @Column({ type: 'int', default: 0 })
+  descuento: number;
 
-  @ApiProperty({
-    description: 'Subcategoría del producto (ej. Platos y bebederos)',
-    example: 'Platos y bebederos',
-    required: false,
-  })
-  subcategoria?: string;
+  @Column({ name: 'rango_edad', type: 'varchar', length: 50, nullable: true })
+  rangoEdad: string | null;
 
-  @ApiProperty({
-    description:
-      'Material de fabricación (ej. Acero, Cerámica, Plástico, Silicona)',
-    example: 'Cerámica',
-    required: false,
-  })
-  material?: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  material: string | null;
 
-  @ApiProperty({
-    description: 'Precio original antes de descuentos (tachado)',
-    example: 8990,
-    required: false,
-  })
-  precioOriginal?: number;
+  @Column({ name: 'ficha_tecnica', type: 'text', nullable: true })
+  fichaTecnica: string | null;
 
-  @ApiProperty({
-    description: 'Modo de uso o instrucciones de aplicación',
-    example: 'Lavar con agua tibia antes del primer uso.',
-    required: false,
-  })
-  modoDeUso?: string;
+  @Column({ name: 'modo_de_uso', type: 'text', nullable: true })
+  modoDeUso: string | null;
 
-  @ApiProperty({
-    description: 'Especificaciones técnicas clave',
-    example: {
-      capacidad: '450 ml',
-      medidas: '14 x 9',
-      diseno: 'Elevado y ergonómico',
-    },
-    required: false,
-  })
-  fichaTecnicaDetalle?: Record<string, string>;
+  @Column({ name: 'ficha_tecnica_detalle', type: 'json', nullable: true })
+  fichaTecnicaDetalle: Record<string, string | number> | null;
 
-  @ApiProperty({
-    description: 'Promedio de calificación en estrellas (1 a 5)',
-    example: 4.0,
-    default: 0,
-  })
-  calificacionPromedio: number;
-
-  @ApiProperty({
-    description: 'Cantidad total de reseñas de clientes',
-    example: 59,
-    default: 0,
-  })
-  totalResenas: number;
+  @OneToMany(() => ProductoImagen, (i) => i.producto, { cascade: true })
+  imagenes: ProductoImagen[];
 }

@@ -124,7 +124,7 @@ export class GetProductoDto {
     example: { capacidad: '450 ml', medidas: '14 x 9' },
     required: false,
   })
-  fichaTecnicaDetalle?: Record<string, string>;
+  fichaTecnicaDetalle?: Record<string, string | number>;
 
   @ApiProperty({
     description: 'Calificación promedio en estrellas (1 a 5)',

@@ -13,9 +13,24 @@ import { GestionClinicaModule } from './gestion-clinica/gestion-clinica.module';
 // 1. Importamos nuestros middlewares
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [UsuariosModule, CatalogoModule, GestionClinicaModule],
+  imports: [ConfigModule.forRoot({ isGlobal:true}),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.getOrThrow<string>('DB_HOST'),
+        port: Number(config.getOrThrow<string>('DB_PORT')),
+        username: config.getOrThrow<string>('DB_USERNAME'),
+        password: config.getOrThrow<string>('DB_PASSWORD'),
+        database: config.getOrThrow<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: false
+      }),
+    }),UsuariosModule, CatalogoModule, GestionClinicaModule],
   controllers: [AppController],
   providers: [AppService],
 })
