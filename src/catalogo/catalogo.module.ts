@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductosController } from './productos.controller';
 import { ServiciosController } from './servicios.controller';
 import { CatalogoController } from './catalogo.controller';
@@ -9,8 +10,25 @@ import { ServiciosService } from './servicios.service';
 import { CatalogoService } from './catalogo.service';
 import { CarritoService } from './carrito.service';
 import { PedidosService } from './pedidos.service';
+import { Producto } from './entities/producto.entity';
+import { Servicio } from './entities/servicio.entity';
+import { Resena } from './entities/resena.entity';
+import { Carrito, ItemCarrito } from './entities/carrito.entity';
+import { Pedido, ItemPedido } from './entities/pedido.entity';
+import { ProductoExistePipe } from '../common/pipes/producto-existe.pipe';
 
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      Producto,
+      Servicio,
+      Resena,
+      Carrito,
+      ItemCarrito,
+      Pedido,
+      ItemPedido,
+    ]),
+  ],
   controllers: [
     ProductosController,
     ServiciosController,
@@ -24,6 +42,7 @@ import { PedidosService } from './pedidos.service';
     CatalogoService,
     CarritoService,
     PedidosService,
+    ProductoExistePipe,
   ],
   exports: [
     ProductosService,
@@ -31,6 +50,8 @@ import { PedidosService } from './pedidos.service';
     CatalogoService,
     CarritoService,
     PedidosService,
+    ProductoExistePipe,
+    TypeOrmModule,
   ],
 })
 export class CatalogoModule {}

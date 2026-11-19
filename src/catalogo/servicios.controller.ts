@@ -11,6 +11,8 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ServiciosService } from './servicios.service';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { GetServicioDto } from './dto/get-servicio.dto';
+import { UpdateServicioDto } from './dto/update-servicio.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Catálogo - Servicios')
 @Controller('catalogo/servicios')
@@ -18,37 +20,40 @@ export class ServiciosController {
   constructor(private readonly serviciosService: ServiciosService) {}
 
   @Post()
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Agregar un nuevo servicio al catálogo' })
   @ApiResponse({ status: 201, type: GetServicioDto })
-  create(@Body() createServicioDto: CreateServicioDto): GetServicioDto {
+  create(@Body() createServicioDto: CreateServicioDto): Promise<GetServicioDto> {
     return this.serviciosService.create(createServicioDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Obtener todos los servicios' })
   @ApiResponse({ status: 200, type: [GetServicioDto] })
-  findAll(): GetServicioDto[] {
+  findAll(): Promise<GetServicioDto[]> {
     return this.serviciosService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un servicio por ID' })
   @ApiResponse({ status: 200, type: GetServicioDto })
-  findOne(@Param('id') id: string): GetServicioDto {
+  findOne(@Param('id') id: string): Promise<GetServicioDto> {
     return this.serviciosService.findOne(id);
   }
 
   @Put(':id')
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Actualizar un servicio por ID' })
   @ApiResponse({ status: 200, type: GetServicioDto })
   update(
     @Param('id') id: string,
-    @Body() updateServicioDto: Partial<CreateServicioDto>,
-  ): GetServicioDto {
+    @Body() updateServicioDto: UpdateServicioDto,
+  ): Promise<GetServicioDto> {
     return this.serviciosService.update(id, updateServicioDto);
   }
 
   @Delete(':id')
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Eliminar un servicio por ID' })
   remove(@Param('id') id: string) {
     return this.serviciosService.remove(id);

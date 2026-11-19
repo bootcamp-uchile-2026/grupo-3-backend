@@ -6,10 +6,12 @@ import {
   Delete,
   Body,
   Param,
-  Query,
+  applyDecorators,
+  Put,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CarritoService } from './carrito.service';
+import { carritoIdPipe } from 'src/common/pipes/carrito-id.pipe';
 import {
   AgregarAlCarritoDto,
   ActualizarCantidadItemDto,
@@ -17,59 +19,110 @@ import {
   GetCarritoDto,
 } from './dto/carrito.dto';
 
+const ApiCarritoExistente = () =>
+  applyDecorators(
+    ApiParam({
+      name: 'carritoId',
+      description: 'ID del carrito devuelto por POST /carritos',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Id de carrito inválido o datos incorrectos.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'El carrito no existe o ya se usó para una compra.',
+    }),
+  );
+
 @ApiTags('Catálogo - Carrito de Compras')
-@Controller('catalogo/carrito')
+@Controller('carritos')
 export class CarritoController {
   constructor(private readonly carritoService: CarritoService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Obtener el estado actual y los productos del carrito' })
-  @ApiResponse({ status: 200, type: GetCarritoDto })
-  @ApiQuery({ name: 'usuarioId', required: false, description: 'ID de usuario o invitado' })
-  getCarrito(@Query('usuarioId') usuarioId?: string): GetCarritoDto {
-    return this.carritoService.getCarrito(usuarioId);
+  @Post()
+  @ApiOperation({
+    summary: 'Crear un carrito de invitado',
+    description:
+      'Devuelve el carrito vacío con su id. El cliente debe guardar ese id para las siguientes llamadas.',
+  })
+  @ApiResponse({ status: 201, type: GetCarritoDto })
+  crear(): Promise<GetCarritoDto> {
+    return this.carritoService.crear();
   }
 
-  @Post('items')
+  @Get(':carritoId')
+  @ApiOperation({
+    summary: 'Obtener el estado actual y los productos del carrito',
+  })
+  @ApiResponse({ status: 200, type: GetCarritoDto })
+  @ApiCarritoExistente()
+  getCarrito(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.getCarrito(carritoId);
+  }
+
+  @Post(':carritoId/items')
   @ApiOperation({ summary: 'Agregar un producto al carrito de compras' })
   @ApiResponse({ status: 201, type: GetCarritoDto })
-  addItem(@Body() dto: AgregarAlCarritoDto): GetCarritoDto {
-    return this.carritoService.addItem(dto);
+  @ApiResponse({ status: 409, description: 'Stock insuficiente' })
+  @ApiCarritoExistente()
+  addItem(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
+    @Body() dto: AgregarAlCarritoDto,
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.addItem(carritoId, dto);
   }
 
-  @Patch('items/:productoId')
-  @ApiOperation({ summary: 'Actualizar la cantidad de un producto (botones + y -)' })
+  @Patch(':carritoId/items/:productoId')
+  @ApiOperation({
+    summary: 'Actualizar la cantidad de un producto (botones + y -)',
+  })
   @ApiResponse({ status: 200, type: GetCarritoDto })
+  @ApiResponse({ status: 409, description: 'Stock insuficiente' })
+  @ApiCarritoExistente()
   updateQuantity(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
     @Param('productoId') productoId: string,
     @Body() dto: ActualizarCantidadItemDto,
-  ): GetCarritoDto {
-    return this.carritoService.updateQuantity(productoId, dto);
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.updateQuantity(carritoId, productoId, dto);
   }
 
-  @Delete('items/:productoId')
-  @ApiOperation({ summary: 'Eliminar un producto del carrito (ícono papelera 🗑)' })
+  @Delete(':carritoId/items/:productoId')
+  @ApiOperation({
+    summary: 'Eliminar un producto del carrito (ícono papelera 🗑)',
+  })
   @ApiResponse({ status: 200, type: GetCarritoDto })
-  @ApiQuery({ name: 'usuarioId', required: false })
+  @ApiCarritoExistente()
   removeItem(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
     @Param('productoId') productoId: string,
-    @Query('usuarioId') usuarioId?: string,
-  ): GetCarritoDto {
-    return this.carritoService.removeItem(productoId, usuarioId);
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.removeItem(carritoId, productoId);
   }
 
-  @Post('cupon')
-  @ApiOperation({ summary: 'Aplicar un cupón de descuento promocional' })
+  @Put(':carritoId/cupon')
+  @ApiOperation({
+    summary: 'Aplicar un cupón de descuento (reemplaza el que hubiera)',
+  })
   @ApiResponse({ status: 200, type: GetCarritoDto })
-  aplicarCupon(@Body() dto: AplicarCuponDto): GetCarritoDto {
-    return this.carritoService.aplicarCupon(dto);
+  @ApiCarritoExistente()
+  aplicarCupon(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
+    @Body() dto: AplicarCuponDto,
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.aplicarCupon(carritoId, dto);
   }
 
-  @Delete('cupon')
+  @Delete(':carritoId/cupon')
   @ApiOperation({ summary: 'Remover el cupón promocional aplicado' })
   @ApiResponse({ status: 200, type: GetCarritoDto })
-  @ApiQuery({ name: 'usuarioId', required: false })
-  removerCupon(@Query('usuarioId') usuarioId?: string): GetCarritoDto {
-    return this.carritoService.removerCupon(usuarioId);
+  @ApiCarritoExistente()
+  removerCupon(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
+  ): Promise<GetCarritoDto> {
+    return this.carritoService.removerCupon(carritoId);
   }
 }

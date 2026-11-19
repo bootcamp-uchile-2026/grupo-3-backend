@@ -4,20 +4,34 @@ import {
   MiddlewareConsumer,
   RequestMethod,
 } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { GestionClinicaModule } from './gestion-clinica/gestion-clinica.module';
+import { AuthModule } from './auth/auth.module';
+import { dataSourceOptions } from './database/data-source';
 
 // 1. Importamos nuestros middlewares
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 
-
-
 @Module({
-  imports: [UsuariosModule, CatalogoModule, GestionClinicaModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRoot({
+      ...dataSourceOptions,
+      autoLoadEntities: true,
+    }),
+    AuthModule,
+    UsuariosModule,
+    CatalogoModule,
+    GestionClinicaModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
@@ -35,4 +49,3 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
-

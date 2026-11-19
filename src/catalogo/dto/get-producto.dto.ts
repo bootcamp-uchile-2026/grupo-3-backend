@@ -27,7 +27,8 @@ export class GetProductoDto {
 
   @ApiProperty({
     description: 'Descripción detallada',
-    example: 'Comedero elevado compacto de 450 ml para favorecer una postura saludable.',
+    example:
+      'Comedero elevado compacto de 450 ml para favorecer una postura saludable.',
   })
   descripcion: string;
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { RecursoNoEncontradoException } from '../common/exceptions/recurso-no-encontrado.exception';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Producto } from './entities/producto.entity';
 import { Resena } from './entities/resena.entity';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -7,14 +8,22 @@ import { GetProductoDto } from './dto/get-producto.dto';
 import { FilterProductoDto } from './dto/filter-producto.dto';
 import { CreateResenaDto } from './dto/create-resena.dto';
 import { GetResenaDto } from './dto/get-resena.dto';
+import { UpdateProductoDto } from './dto/update-producto.dto';
+import { StockInsuficienteError } from 'src/common/errors/stock-insuficiente.error';
+import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ProductosService {
-  private productos: Producto[] = [];
-  private resenas: Resena[] = [];
+  constructor(
+    @InjectRepository(Producto)
+    private readonly productosRepo: Repository<Producto>,
+    @InjectRepository(Resena)
+    private readonly resenasRepo: Repository<Resena>,
+  ) {}
 
-  create(createProductoDto: CreateProductoDto): GetProductoDto {
-    const newProducto: Producto = {
+  async create(createProductoDto: CreateProductoDto): Promise<GetProductoDto> {
+    const newProducto = this.productosRepo.create({
       id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       tipo: 'Producto',
       calificacionPromedio: 0,
@@ -23,13 +32,13 @@ export class ProductosService {
       cantidad: createProductoDto.cantidad ?? 1,
       fichaTecnica: createProductoDto.fichaTecnica ?? '',
       ...createProductoDto,
-    };
-    this.productos.push(newProducto);
-    return this.mapToGetDto(newProducto);
+    });
+    const saved = await this.productosRepo.save(newProducto);
+    return this.mapToGetDto(saved);
   }
 
-  findAll(filters?: FilterProductoDto): GetProductoDto[] {
-    let result = [...this.productos];
+  async findAll(filters?: FilterProductoDto): Promise<GetProductoDto[]> {
+    let result = await this.productosRepo.find();
 
     if (!filters) {
       return result.map((p) => this.mapToGetDto(p));
@@ -111,14 +120,13 @@ export class ProductosService {
           break;
         case 'calificacion':
           result.sort(
-            (a, b) => (b.calificacionPromedio || 0) - (a.calificacionPromedio || 0),
+            (a, b) =>
+              (b.calificacionPromedio || 0) - (a.calificacionPromedio || 0),
           );
           break;
         case 'popularidad':
         default:
-          result.sort(
-            (a, b) => (b.totalResenas || 0) - (a.totalResenas || 0),
-          );
+          result.sort((a, b) => (b.totalResenas || 0) - (a.totalResenas || 0));
           break;
       }
     }
@@ -131,19 +139,30 @@ export class ProductosService {
     return result.map((p) => this.mapToGetDto(p));
   }
 
-  findOfertas(limit: number = 8): GetProductoDto[] {
-    return this.productos
+  async findOfertas(limit: number = 8): Promise<GetProductoDto[]> {
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
+    const all = await this.productosRepo.find();
+    return all
       .filter((p) => (p.descuento ?? 0) > 0)
       .slice(0, limit)
       .map((p) => this.mapToGetDto(p));
   }
 
-  findRelacionados(id: string, limit: number = 4): GetProductoDto[] {
-    const target = this.productos.find((p) => p.id === id);
+  async findRelacionados(
+    id: string,
+    limit: number = 4,
+  ): Promise<GetProductoDto[]> {
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
+    const target = await this.productosRepo.findOne({ where: { id } });
     if (!target) {
       return [];
     }
-    return this.productos
+    const all = await this.productosRepo.find();
+    return all
       .filter(
         (p) =>
           p.id !== id &&
@@ -153,91 +172,104 @@ export class ProductosService {
       .map((p) => this.mapToGetDto(p));
   }
 
-  findSugeridos(limit: number = 4): GetProductoDto[] {
-    return this.productos
-      .slice(0, limit)
-      .map((p) => this.mapToGetDto(p));
+  async findSugeridos(limit: number = 4): Promise<GetProductoDto[]> {
+    if (limit < 1) {
+      throw new ReglaNegocioError('El valor de límite debe ser mayor a 0');
+    }
+    const list = await this.productosRepo.find({ take: limit });
+    return list.map((p) => this.mapToGetDto(p));
   }
 
-  findOne(id: string): GetProductoDto {
-    const producto = this.productos.find((p) => p.id === id);
+  async findOne(id: string): Promise<GetProductoDto> {
+    const producto = await this.productosRepo.findOne({ where: { id } });
     if (!producto) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     return this.mapToGetDto(producto);
   }
 
-  findOneEntity(id: string): Producto {
-    const producto = this.productos.find((p) => p.id === id);
+  async findOneEntity(id: string): Promise<Producto> {
+    const producto = await this.productosRepo.findOne({ where: { id } });
     if (!producto) {
-      throw new RecursoNoEncontradoException('Producto', id);
+      throw new RecursoNoEncontradoError(`Producto con ID ${id} no encontrado`);
     }
     return producto;
   }
 
-  update(
+  async update(
     id: string,
-    updateProductoDto: Partial<CreateProductoDto>,
-  ): GetProductoDto {
-    const prodIndex = this.productos.findIndex((p) => p.id === id);
-    if (prodIndex === -1) {
-      throw new RecursoNoEncontradoException('Producto', id);
-    }
-    const updatedProd: Producto = {
-      ...this.productos[prodIndex],
-      ...updateProductoDto,
-    };
-    this.productos[prodIndex] = updatedProd;
-    return this.mapToGetDto(updatedProd);
+    updateProductoDto: UpdateProductoDto,
+  ): Promise<GetProductoDto> {
+    const existing = await this.findOneEntity(id);
+    const updatedProd = this.productosRepo.merge(existing, updateProductoDto);
+    const saved = await this.productosRepo.save(updatedProd);
+    return this.mapToGetDto(saved);
   }
 
-  remove(id: string): { message: string } {
-    const prodIndex = this.productos.findIndex((p) => p.id === id);
-    if (prodIndex === -1) {
-      throw new RecursoNoEncontradoException('Producto', id);
-    }
-    this.productos.splice(prodIndex, 1);
-    this.resenas = this.resenas.filter((r) => r.productoId !== id);
+  async addImagen(id: string, imageUrl: string): Promise<GetProductoDto> {
+    const existing = await this.findOneEntity(id);
+    const imagenesActuales = Array.isArray(existing.imagenes)
+      ? existing.imagenes
+      : [];
+    existing.imagenes = [...imagenesActuales, imageUrl];
+    const saved = await this.productosRepo.save(existing);
+    return this.mapToGetDto(saved);
+  }
+
+  async remove(id: string): Promise<{ message: string }> {
+    const existing = await this.findOneEntity(id);
+    await this.resenasRepo.delete({ productoId: id });
+    await this.productosRepo.remove(existing);
     return { message: `Producto con ID ${id} eliminado correctamente` };
   }
 
-  decreaseStock(id: string, qty: number): void {
-    const producto = this.findOneEntity(id);
+  async decreaseStock(id: string, qty: number): Promise<void> {
+    const producto = await this.findOneEntity(id);
     if (producto.stock < qty) {
-      throw new Error(
-        `Stock insuficiente para el producto ${producto.nombre}. Disponible: ${producto.stock}, Solicitado: ${qty}`,
-      );
+      throw new StockInsuficienteError(producto.stock, producto.nombre);
     }
     producto.stock -= qty;
+    await this.productosRepo.save(producto);
   }
 
   // --- Manejo de Reseñas de Clientes ---
-  addResena(
+  async addResena(
     productoId: string,
     createResenaDto: CreateResenaDto,
-  ): GetResenaDto {
-    const producto = this.findOneEntity(productoId);
+  ): Promise<GetResenaDto> {
+    const producto = await this.findOneEntity(productoId);
 
-    const newResena: Resena = {
+    const newResena = this.resenasRepo.create({
       id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       productoId,
       ...createResenaDto,
       fecha: new Date(),
-    };
-    this.resenas.push(newResena);
+    });
+    const savedResena = await this.resenasRepo.save(newResena);
 
     // Recalcular promedio de estrellas y total
-    const productoResenas = this.resenas.filter((r) => r.productoId === productoId);
+    const productoResenas = await this.resenasRepo.find({
+      where: { productoId },
+    });
     producto.totalResenas = productoResenas.length;
-    const sum = productoResenas.reduce((acc, curr) => acc + curr.calificacion, 0);
-    producto.calificacionPromedio = Number((sum / productoResenas.length).toFixed(1));
+    const sum = productoResenas.reduce(
+      (acc, curr) => acc + curr.calificacion,
+      0,
+    );
+    producto.calificacionPromedio = Number(
+      (sum / productoResenas.length).toFixed(1),
+    );
+    await this.productosRepo.save(producto);
 
-    return this.mapToResenaDto(newResena);
+    return this.mapToResenaDto(savedResena);
   }
 
-  findResenas(productoId: string, filtro?: string): GetResenaDto[] {
-    this.findOne(productoId); // valida existencia
-    let lista = this.resenas.filter((r) => r.productoId === productoId);
+  async findResenas(
+    productoId: string,
+    filtro?: string,
+  ): Promise<GetResenaDto[]> {
+    await this.findOne(productoId); // valida existencia
+    let lista = await this.resenasRepo.find({ where: { productoId } });
 
     if (filtro) {
       const f = filtro.toLowerCase();

@@ -1,8 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Carrito, ItemCarrito } from './entities/carrito.entity';
 import {
   AgregarAlCarritoDto,
@@ -11,157 +9,201 @@ import {
   GetCarritoDto,
 } from './dto/carrito.dto';
 import { ProductosService } from './productos.service';
+import { StockInsuficienteError } from 'src/common/errors/stock-insuficiente.error';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
+import { randomUUID } from 'crypto';
+import { ReglaNegocioError } from 'src/common/errors/regla-negocio.error';
 
 @Injectable()
 export class CarritoService {
-  // Manejo de carritos por usuario (o 'invitado' por defecto)
-  private carritos: Map<string, Carrito> = new Map();
-
   // Cupones válidos de ejemplo para la tienda
-  private cuponesValidos: Record<string, { tipo: 'porcentaje' | 'monto'; valor: number }> = {
+  private cuponesValidos: Record<
+    string,
+    { tipo: 'porcentaje' | 'monto'; valor: number }
+  > = {
     PETLOVE10: { tipo: 'porcentaje', valor: 10 },
     BIENVENIDA: { tipo: 'monto', valor: 3000 },
     VERANO: { tipo: 'porcentaje', valor: 15 },
   };
 
-  constructor(private readonly productosService: ProductosService) {}
+  constructor(
+    @InjectRepository(Carrito)
+    private readonly carritosRepo: Repository<Carrito>,
+    @InjectRepository(ItemCarrito)
+    private readonly itemsRepo: Repository<ItemCarrito>,
+    private readonly productosService: ProductosService,
+  ) {}
 
-  private obtenerOcrearCarrito(usuarioId: string = 'invitado'): Carrito {
-    if (!this.carritos.has(usuarioId)) {
-      const nuevoCarrito: Carrito = {
-        id: `cart-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        usuarioId,
-        items: [],
-        descuentoCupon: 0,
-        subtotal: 0,
-        totalArticulos: 0,
-        total: 0,
-      };
-      this.carritos.set(usuarioId, nuevoCarrito);
-    }
-    return this.carritos.get(usuarioId)!;
+  async crear(): Promise<GetCarritoDto> {
+    const carrito = this.carritosRepo.create({
+      id: randomUUID(),
+      items: [],
+      descuentoCupon: 0,
+      subtotal: 0,
+      totalArticulos: 0,
+      total: 0,
+    });
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  getCarrito(usuarioId: string = 'invitado'): GetCarritoDto {
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
+  async obtener(carritoId: string): Promise<Carrito> {
+    const carrito = await this.carritosRepo.findOne({
+      where: { id: carritoId },
+      relations: { items: true },
+    });
+    if (!carrito) {
+      throw new RecursoNoEncontradoError(
+        `El carrito con ID ${carritoId} no existe.`,
+      );
+    }
+    if (!carrito.items) {
+      carrito.items = [];
+    }
+    return carrito;
+  }
+
+  async getCarrito(carritoId: string): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
     this.recalcularTotales(carrito);
+    await this.carritosRepo.save(carrito);
     return this.mapToDto(carrito);
   }
 
-  addItem(dto: AgregarAlCarritoDto): GetCarritoDto {
-    const usuarioId = dto.usuarioId || 'invitado';
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
-    const producto = this.productosService.findOneEntity(dto.productoId);
-
-    if (producto.stock < dto.cantidad) {
-      throw new BadRequestException(
-        `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}`,
-      );
-    }
+  async addItem(
+    carritoId: string,
+    dto: AgregarAlCarritoDto,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    const producto = await this.productosService.findOneEntity(dto.productoId);
+    const cantidad = dto.cantidad ?? 1;
 
     const itemExistente = carrito.items.find(
       (it) => it.productoId === dto.productoId,
     );
+    const cantidadTotal = (itemExistente?.cantidad ?? 0) + cantidad;
+
+    if (producto.stock < cantidadTotal) {
+      throw new StockInsuficienteError(producto.stock, producto.nombre);
+    }
 
     if (itemExistente) {
-      const nuevaCantidad = itemExistente.cantidad + (dto.cantidad || 1);
-      if (producto.stock < nuevaCantidad) {
-        throw new BadRequestException(
-          `No puedes agregar más unidades. Stock disponible: ${producto.stock}`,
-        );
-      }
-      itemExistente.cantidad = nuevaCantidad;
-      itemExistente.subtotal = itemExistente.cantidad * itemExistente.precioUnitario;
+      itemExistente.cantidad = cantidadTotal;
+      itemExistente.subtotal =
+        itemExistente.cantidad * itemExistente.precioUnitario;
+      await this.itemsRepo.save(itemExistente);
     } else {
-      const nuevoItem: ItemCarrito = {
+      const nuevoItem = this.itemsRepo.create({
+        carritoId: carrito.id,
         productoId: producto.id,
         nombre: producto.nombre,
         marca: producto.marca,
-        imagen: producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : '',
+        imagen: producto.imagenes?.[0] ?? '',
         precioOriginal: producto.precioOriginal,
         precioUnitario: producto.precio,
-        cantidad: dto.cantidad || 1,
-        subtotal: (dto.cantidad || 1) * producto.precio,
-      };
-      carrito.items.push(nuevoItem);
+        cantidad,
+        subtotal: cantidad * producto.precio,
+      });
+      const savedItem = await this.itemsRepo.save(nuevoItem);
+      carrito.items.push(savedItem);
     }
 
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  updateQuantity(
+  async updateQuantity(
+    carritoId: string,
     productoId: string,
     dto: ActualizarCantidadItemDto,
-  ): GetCarritoDto {
-    const usuarioId = dto.usuarioId || 'invitado';
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
     const item = carrito.items.find((it) => it.productoId === productoId);
 
     if (!item) {
-      throw new NotFoundException(`El producto con ID ${productoId} no está en el carrito`);
-    }
-
-    if (dto.cantidad <= 0) {
-      return this.removeItem(productoId, usuarioId);
-    }
-
-    const producto = this.productosService.findOneEntity(productoId);
-    if (producto.stock < dto.cantidad) {
-      throw new BadRequestException(
-        `Stock insuficiente. Disponible: ${producto.stock}`,
+      throw new RecursoNoEncontradoError(
+        `El producto con ID ${productoId} no está en el carrito`,
       );
+    }
+
+    const producto = await this.productosService.findOneEntity(productoId);
+    if (producto.stock < dto.cantidad) {
+      throw new StockInsuficienteError(producto.stock, producto.nombre);
     }
 
     item.cantidad = dto.cantidad;
     item.subtotal = item.cantidad * item.precioUnitario;
+    await this.itemsRepo.save(item);
 
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  removeItem(productoId: string, usuarioId: string = 'invitado'): GetCarritoDto {
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
+  async removeItem(
+    carritoId: string,
+    productoId: string,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    const item = carrito.items.find((it) => it.productoId === productoId);
+    if (item && item.id) {
+      await this.itemsRepo.delete(item.id);
+    }
     carrito.items = carrito.items.filter((it) => it.productoId !== productoId);
     this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
   }
 
-  aplicarCupon(dto: AplicarCuponDto): GetCarritoDto {
-    const usuarioId = dto.usuarioId || 'invitado';
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
+  async aplicarCupon(
+    carritoId: string,
+    dto: AplicarCuponDto,
+  ): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
 
     const cuponUpper = dto.codigoCupon.trim().toUpperCase();
-    const configCupon = this.cuponesValidos[cuponUpper];
-
-    if (!configCupon) {
-      throw new BadRequestException(`El cupón "${dto.codigoCupon}" no es válido o ha expirado`);
+    if (!this.cuponesValidos[cuponUpper]) {
+      throw new ReglaNegocioError(
+        `El cupón "${dto.codigoCupon}" no es válido o ha expirado`,
+      );
     }
 
     carrito.cuponAplicado = cuponUpper;
     this.recalcularTotales(carrito);
+    const saved = await this.carritosRepo.save(carrito);
+    return this.mapToDto(saved);
+  }
+
+  async removerCupon(carritoId: string): Promise<GetCarritoDto> {
+    const carrito = await this.obtener(carritoId);
+    carrito.cuponAplicado = undefined;
+    carrito.descuentoCupon = 0;
+    this.recalcularTotales(carrito);
+    await this.carritosRepo.update(carrito.id, {
+      cuponAplicado: null as unknown as undefined,
+      descuentoCupon: 0,
+      subtotal: carrito.subtotal,
+      totalArticulos: carrito.totalArticulos,
+      total: carrito.total,
+    });
     return this.mapToDto(carrito);
   }
 
-  removerCupon(usuarioId: string = 'invitado'): GetCarritoDto {
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
-    delete carrito.cuponAplicado;
-    carrito.descuentoCupon = 0;
-    this.recalcularTotales(carrito);
-    return this.mapToDto(carrito);
-  }
-
-  vaciarCarrito(usuarioId: string = 'invitado'): void {
-    const carrito = this.obtenerOcrearCarrito(usuarioId);
-    carrito.items = [];
-    delete carrito.cuponAplicado;
-    carrito.descuentoCupon = 0;
-    this.recalcularTotales(carrito);
+  async cerrar(carritoId: string): Promise<void> {
+    await this.itemsRepo.delete({ carritoId });
+    await this.carritosRepo.delete(carritoId);
   }
 
   private recalcularTotales(carrito: Carrito): void {
-    carrito.subtotal = carrito.items.reduce((acc, it) => acc + it.subtotal, 0);
-    carrito.totalArticulos = carrito.items.reduce((acc, it) => acc + it.cantidad, 0);
+    carrito.subtotal = carrito.items.reduce(
+      (acc, it) => acc + Number(it.subtotal),
+      0,
+    );
+    carrito.totalArticulos = carrito.items.reduce(
+      (acc, it) => acc + Number(it.cantidad),
+      0,
+    );
 
     let descuento = 0;
     if (carrito.cuponAplicado && this.cuponesValidos[carrito.cuponAplicado]) {
@@ -180,11 +222,19 @@ export class CarritoService {
   private mapToDto(carrito: Carrito): GetCarritoDto {
     return {
       id: carrito.id,
-      usuarioId: carrito.usuarioId,
-      items: carrito.items.map((it) => ({ ...it })),
+      items: (carrito.items || []).map((it) => ({
+        productoId: it.productoId,
+        nombre: it.nombre,
+        marca: it.marca,
+        imagen: it.imagen,
+        precioOriginal: it.precioOriginal,
+        precioUnitario: it.precioUnitario,
+        cantidad: it.cantidad,
+        subtotal: it.subtotal,
+      })),
       totalArticulos: carrito.totalArticulos,
       subtotal: carrito.subtotal,
-      cuponAplicado: carrito.cuponAplicado,
+      cuponAplicado: carrito.cuponAplicado ?? undefined,
       descuentoCupon: carrito.descuentoCupon,
       total: carrito.total,
     };

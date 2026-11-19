@@ -1,12 +1,13 @@
-# Modelo de datos — PetLove (v1, Hito 2)
+# Modelo de datos — PetLove (Hito 3 — Persistido en MySQL con TypeORM)
 
-Primera versión del modelo de datos de la Aplicación Backend de PetLove. El modelo se construyó a partir de los contratos de la API (DTOs documentados en OpenAPI/Swagger) y se normalizó hasta la tercera forma normal (3NF).
+Modelo de datos relacional de la Aplicación Backend de PetLove, implementado sobre **MySQL 8** mediante **TypeORM** y gestionado a través de migraciones automatizadas (`src/database/migrations/`).
 
 | | |
 |---|---|
 | **Motor** | MySQL 8 (contenedor `petlove-db`, definido en `compose.yaml`) |
-| **Tablas** | 28, organizadas en 3 módulos |
-| **Estado** | Modelo definido. En este hito los servicios funcionan con almacenamiento en memoria (dummy); la conexión a la base de datos (TypeORM) y los scripts de estructura y datos de prueba se incorporarán en el Hito 3. |
+| **ORM** | TypeORM (`@nestjs/typeorm`) con `migrationsRun: true` |
+| **Migraciones** | `1731880000000-InitialSchema.ts` (estructura) y `1731880001000-SeedInitialData.ts` (datos iniciales) |
+| **Estado** | **Implementado y conectado a base de datos** en los módulos `UsuariosModule`, `CatalogoModule`, `GestionClinicaModule` y `AuthModule`. |
 
 ## Convenciones
 

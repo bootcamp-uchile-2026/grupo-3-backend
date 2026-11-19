@@ -7,6 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { RecursoNoEncontradoError } from '../errors/recurso-noEncontrado.error';
+import { StockInsuficienteError } from '../errors/stock-insuficiente.error';
+import { ReglaNegocioError } from '../errors/regla-negocio.error';
+import { CredencialesInvalidasError } from '../errors/credenciales-invalidas.error';
 
 /**
  * Filtro global que transforma cualquier excepción en una respuesta HTTP
@@ -19,7 +23,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
-    const req = ctx.getRequest<Request>();
+    const req = ctx.getRequest<Request & { requestId?: string }>();
+    const requestId = req.requestId;
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let error = 'Internal Server Error';
@@ -37,10 +42,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = b.message ?? exception.message;
         error = b.error ?? exception.name;
       }
+    } else if (exception instanceof RecursoNoEncontradoError) {
+      status = HttpStatus.NOT_FOUND;
+      error = 'Not Found';
+      message = exception.message;
+    } else if (exception instanceof StockInsuficienteError) {
+      status = HttpStatus.CONFLICT;
+      error = 'Conflict';
+      message = exception.message;
+    } else if (exception instanceof ReglaNegocioError) {
+      status = HttpStatus.BAD_REQUEST;
+      error = 'Bad Request';
+      message = exception.message;
+    } else if (exception instanceof CredencialesInvalidasError){
+      status = HttpStatus.UNAUTHORIZED;
+      error = 'Unauthorized';
+      message = exception.message;
     } else {
       // Errores inesperados: se registran con su detalle, pero no se exponen al cliente
       const err = exception as Error;
-      this.logger.error(`[${req['requestId']}] ${err?.message}`, err?.stack);
+      this.logger.error(`[${requestId}] ${err?.message}`, err?.stack);
     }
 
     res.status(status).json({
@@ -49,7 +70,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message,
       path: req.originalUrl,
       timestamp: new Date().toISOString(),
-      requestId: req['requestId'],
+      requestId,
     });
   }
 }

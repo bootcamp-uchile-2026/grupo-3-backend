@@ -1,48 +1,66 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import {
   CreatePedidoDto,
   GetPedidoDto,
   SeguimientoPedidoDto,
 } from './dto/pedido.dto';
+import { carritoIdPipe } from 'src/common/pipes/carrito-id.pipe';
 
 @ApiTags('Catálogo - Pedidos y Checkout')
-@Controller('catalogo/pedidos')
+@Controller()
 export class PedidosController {
   constructor(private readonly pedidosService: PedidosService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Finalizar compra y crear una nueva orden de pedido' })
+  @Post('carritos/:carritoId/pedido')
+  @ApiOperation({
+    summary: 'Finalizar la compra del carrito y crear el pedido',
+    description:
+      'Tras una compra exitosa, el carrito se cierra y su id deja de ser válido.',
+  })
+  @ApiParam({
+    name: 'carritoId',
+    description: 'ID del carrito devuelto por POST /carritos',
+  })
   @ApiResponse({ status: 201, type: GetPedidoDto })
-  create(@Body() dto: CreatePedidoDto): GetPedidoDto {
-    return this.pedidosService.create(dto);
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos, id de carrito inválido o carrito vacío',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'El carrito no existe o ya se usó para una compra',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Stock insuficiente de algún producto',
+  })
+  create(
+    @Param('carritoId', carritoIdPipe) carritoId: string,
+    @Body() dto: CreatePedidoDto,
+  ): Promise<GetPedidoDto> {
+    return this.pedidosService.create(carritoId, dto);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Obtener el detalle de confirmación de un pedido por ID' })
+  @Get('catalogo/pedidos/:id')
+  @ApiOperation({
+    summary:
+      'Obtener el detalle de confirmación de un pedido por número de orden',
+  })
   @ApiResponse({ status: 200, type: GetPedidoDto })
-  findOne(@Param('id') id: string): GetPedidoDto {
+  @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
+  findOne(@Param('id') id: string): Promise<GetPedidoDto> {
     return this.pedidosService.findOne(id);
   }
 
-  @Get(':id/seguimiento')
-  @ApiOperation({ summary: 'Obtener el tracking y estado de entrega de un pedido' })
+  @Get('catalogo/pedidos/:id/seguimiento')
+  @ApiOperation({
+    summary: 'Obtener el tracking y estado de entrega de un pedido',
+  })
   @ApiResponse({ status: 200, type: SeguimientoPedidoDto })
-  getSeguimiento(@Param('id') id: string): SeguimientoPedidoDto {
+  @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
+  getSeguimiento(@Param('id') id: string): Promise<SeguimientoPedidoDto> {
     return this.pedidosService.getSeguimiento(id);
-  }
-
-  @Get('usuario/:usuarioId')
-  @ApiOperation({ summary: 'Obtener el historial de pedidos de un usuario' })
-  @ApiResponse({ status: 200, type: [GetPedidoDto] })
-  findByUsuario(@Param('usuarioId') usuarioId: string): GetPedidoDto[] {
-    return this.pedidosService.findByUsuario(usuarioId);
   }
 }
