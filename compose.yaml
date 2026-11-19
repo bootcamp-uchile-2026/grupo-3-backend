@@ -13,7 +13,7 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET:-petlove_jwt_secret_key_2026}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en el .env}
     volumes:
       - uploads-data:/app/uploads
     depends_on:
@@ -24,8 +24,6 @@ services:
   db:
     image: mysql:8
     container_name: petlove-db
-    ports:
-      - "${DB_PORT:-3306}:3306"
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
