@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { OrdenExamen } from './entities/orden-examen.entity';
 import { Examen } from './entities/examen.entity';
 import { CreateOrdenExamenDto } from './dto/create-orden-examen.dto';
@@ -6,107 +8,115 @@ import { CreateExamenDto } from './dto/create-examen.dto';
 import { GetOrdenExamenDto } from './dto/get-orden-examen.dto';
 import { GetExamenDto } from './dto/get-examen.dto';
 import { ConsultasService } from './consultas.service';
+import { UpdateExamenDto } from './dto/update-examen.dto';
+import { RecursoNoEncontradoError } from 'src/common/errors/recurso-noEncontrado.error';
 
 @Injectable()
 export class ExamenesService {
-  private ordenes: OrdenExamen[] = [];
-  private examenes: Examen[] = [];
-
-  constructor(private readonly consultasService: ConsultasService) {}
+  constructor(
+    @InjectRepository(OrdenExamen)
+    private readonly ordenesRepo: Repository<OrdenExamen>,
+    @InjectRepository(Examen)
+    private readonly examenesRepo: Repository<Examen>,
+    private readonly consultasService: ConsultasService,
+  ) {}
 
   // --- Órdenes de Examen ---
-  createOrden(createOrdenDto: CreateOrdenExamenDto): GetOrdenExamenDto {
-    // Validar consulta
-    this.consultasService.findOne(createOrdenDto.consultaId);
+  async createOrden(
+    createOrdenDto: CreateOrdenExamenDto,
+  ): Promise<GetOrdenExamenDto> {
+    await this.consultasService.findOne(createOrdenDto.consultaId);
 
-    const newOrden: OrdenExamen = {
+    const newOrden = this.ordenesRepo.create({
       id: `orden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       ...createOrdenDto,
       fechaEmision: new Date(),
-    };
-    this.ordenes.push(newOrden);
-    return this.mapToGetOrdenDto(newOrden);
+    });
+    const saved = await this.ordenesRepo.save(newOrden);
+    return this.mapToGetOrdenDto(saved);
   }
 
-  findAllOrdenes(): GetOrdenExamenDto[] {
-    return this.ordenes.map((o) => this.mapToGetOrdenDto(o));
+  async findAllOrdenes(): Promise<GetOrdenExamenDto[]> {
+    const list = await this.ordenesRepo.find();
+    return list.map((o) => this.mapToGetOrdenDto(o));
   }
 
-  findOneOrden(id: string): GetOrdenExamenDto {
-    const orden = this.ordenes.find((o) => o.id === id);
+  async findOneOrden(id: string): Promise<GetOrdenExamenDto> {
+    const orden = await this.ordenesRepo.findOne({ where: { id } });
     if (!orden) {
-      throw new NotFoundException(`Orden de examen con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Orden de examen con ID ${id} no encontrada`,
+      );
     }
     return this.mapToGetOrdenDto(orden);
   }
 
-  findOneOrdenEntity(id: string): OrdenExamen {
-    const orden = this.ordenes.find((o) => o.id === id);
+  async findOneOrdenEntity(id: string): Promise<OrdenExamen> {
+    const orden = await this.ordenesRepo.findOne({ where: { id } });
     if (!orden) {
-      throw new NotFoundException(`Orden de examen con ID ${id} no encontrada`);
+      throw new RecursoNoEncontradoError(
+        `Orden de examen con ID ${id} no encontrada`,
+      );
     }
     return orden;
   }
 
-  findOrdenesByConsulta(consultaId: string): GetOrdenExamenDto[] {
-    this.consultasService.findOne(consultaId);
-    return this.ordenes
-      .filter((o) => o.consultaId === consultaId)
-      .map((o) => this.mapToGetOrdenDto(o));
+  async findOrdenesByConsulta(
+    consultaId: string,
+  ): Promise<GetOrdenExamenDto[]> {
+    await this.consultasService.findOne(consultaId);
+    const list = await this.ordenesRepo.find({ where: { consultaId } });
+    return list.map((o) => this.mapToGetOrdenDto(o));
   }
 
   // --- Detalles de Examen ---
-  createExamen(createExamenDto: CreateExamenDto): GetExamenDto {
-    // Validar que la orden exista
-    this.findOneOrden(createExamenDto.ordenId);
+  async createExamen(createExamenDto: CreateExamenDto): Promise<GetExamenDto> {
+    await this.findOneOrden(createExamenDto.ordenId);
 
-    const newExamen: Examen = {
+    const newExamen = this.examenesRepo.create({
       id: `examen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       resultado: createExamenDto.resultado || 'Pendiente',
       ...createExamenDto,
-    };
-    this.examenes.push(newExamen);
-    return this.mapToGetExamenDto(newExamen);
+    });
+    const saved = await this.examenesRepo.save(newExamen);
+    return this.mapToGetExamenDto(saved);
   }
 
-  findAllExamenes(): GetExamenDto[] {
-    return this.examenes.map((e) => this.mapToGetExamenDto(e));
+  async findAllExamenes(): Promise<GetExamenDto[]> {
+    const list = await this.examenesRepo.find();
+    return list.map((e) => this.mapToGetExamenDto(e));
   }
 
-  findOneExamen(id: string): GetExamenDto {
-    const examen = this.examenes.find((e) => e.id === id);
+  async findOneExamen(id: string): Promise<GetExamenDto> {
+    const examen = await this.examenesRepo.findOne({ where: { id } });
     if (!examen) {
-      throw new NotFoundException(`Examen con ID ${id} no encontrado`);
+      throw new RecursoNoEncontradoError(`Examen con ID ${id} no encontrado`);
     }
     return this.mapToGetExamenDto(examen);
   }
 
-  findExamenesByOrden(ordenId: string): GetExamenDto[] {
-    this.findOneOrden(ordenId);
-    return this.examenes
-      .filter((e) => e.ordenId === ordenId)
-      .map((e) => this.mapToGetExamenDto(e));
+  async findExamenesByOrden(ordenId: string): Promise<GetExamenDto[]> {
+    await this.findOneOrden(ordenId);
+    const list = await this.examenesRepo.find({ where: { ordenId } });
+    return list.map((e) => this.mapToGetExamenDto(e));
   }
 
-  updateExamen(
+  async updateExamen(
     id: string,
-    updateExamenDto: Partial<CreateExamenDto>,
-  ): GetExamenDto {
-    const exIndex = this.examenes.findIndex((e) => e.id === id);
-    if (exIndex === -1) {
-      throw new NotFoundException(`Examen con ID ${id} no encontrado`);
+    updateExamenDto: UpdateExamenDto,
+  ): Promise<GetExamenDto> {
+    const existing = await this.examenesRepo.findOne({ where: { id } });
+    if (!existing) {
+      throw new RecursoNoEncontradoError(`Examen con ID ${id} no encontrado`);
     }
 
     if (updateExamenDto.ordenId) {
-      this.findOneOrden(updateExamenDto.ordenId);
+      await this.findOneOrden(updateExamenDto.ordenId);
     }
 
-    const updatedExamen = {
-      ...this.examenes[exIndex],
-      ...updateExamenDto,
-    };
-    this.examenes[exIndex] = updatedExamen;
-    return this.mapToGetExamenDto(updatedExamen);
+    const updatedExamen = this.examenesRepo.merge(existing, updateExamenDto);
+    const saved = await this.examenesRepo.save(updatedExamen);
+    return this.mapToGetExamenDto(saved);
   }
 
   private mapToGetOrdenDto(orden: OrdenExamen): GetOrdenExamenDto {

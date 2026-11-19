@@ -58,13 +58,17 @@ export class CatalogoService {
     ];
   }
 
-  findAllCompatible(
+  async findAllCompatible(
     especie: string,
     edad: number,
-  ): (GetProductoDto | GetServicioDto)[] {
+  ): Promise<(GetProductoDto | GetServicioDto)[]> {
+    const [productos, servicios] = await Promise.all([
+      this.productosService.findAll(),
+      this.serviciosService.findAll(),
+    ]);
     const allItems: (GetProductoDto | GetServicioDto)[] = [
-      ...this.productosService.findAll(),
-      ...this.serviciosService.findAll(),
+      ...productos,
+      ...servicios,
     ];
 
     let rangoMascota = 'Todos';
@@ -83,17 +87,17 @@ export class CatalogoService {
 
       const itemRango = item.rangoEdad ? item.rangoEdad.toLowerCase() : 'todos';
       const matchRango =
-        itemRango === 'todos' ||
-        itemRango === rangoMascota.toLowerCase();
+        itemRango === 'todos' || itemRango === rangoMascota.toLowerCase();
 
       return matchEspecie && matchRango;
     });
   }
 
-  findAll(): (GetProductoDto | GetServicioDto)[] {
-    return [
-      ...this.productosService.findAll(),
-      ...this.serviciosService.findAll(),
-    ];
+  async findAll(): Promise<(GetProductoDto | GetServicioDto)[]> {
+    const [productos, servicios] = await Promise.all([
+      this.productosService.findAll(),
+      this.serviciosService.findAll(),
+    ]);
+    return [...productos, ...servicios];
   }
 }

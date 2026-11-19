@@ -51,7 +51,10 @@ export class GetDireccionDto {
   @ApiProperty({ description: 'ID de la dirección', example: 'dir-123' })
   id: string;
 
-  @ApiProperty({ description: 'ID del usuario propietario', example: 'duenio-123' })
+  @ApiProperty({
+    description: 'ID del usuario propietario',
+    example: 'duenio-123',
+  })
   usuarioId: string;
 
   @ApiProperty({ description: 'Calle y número', example: 'Av. Pajarito 3234' })
