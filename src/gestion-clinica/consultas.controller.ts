@@ -12,13 +12,16 @@ import { ConsultasService } from './consultas.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { GetConsultaDto } from './dto/get-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Gestión de Clínica - Consultas')
+@Auth()
 @Controller('gestion-clinica/consultas')
 export class ConsultasController {
   constructor(private readonly consultasService: ConsultasService) {}
 
   @Post()
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({ summary: 'Registrar una nueva consulta clínica veterinaria' })
   @ApiResponse({ status: 201, type: GetConsultaDto })
   create(@Body() createConsultaDto: CreateConsultaDto): Promise<GetConsultaDto> {
@@ -42,6 +45,7 @@ export class ConsultasController {
   }
 
   @Put(':id')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({
     summary: 'Actualizar información de una consulta clínica por ID',
   })
@@ -54,6 +58,7 @@ export class ConsultasController {
   }
 
   @Delete(':id')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({ summary: 'Eliminar una consulta clínica por ID' })
   remove(@Param('id') id: string) {
     return this.consultasService.remove(id);

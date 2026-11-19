@@ -12,6 +12,7 @@ import { DueniosService } from './duenios.service';
 import { CreateDuenioDto } from './dto/create-duenio.dto';
 import { GetDuenioDto } from './dto/get-duenio.dto';
 import { UpdateDuenioDto } from './dto/update-duenio.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Usuarios - Dueños de Mascotas')
 @Controller('usuarios/duenios')
@@ -26,6 +27,7 @@ export class DueniosController {
   }
 
   @Get()
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Obtener todos los dueños' })
   @ApiResponse({ status: 200, type: [GetDuenioDto] })
   findAll(): Promise<GetDuenioDto[]> {
@@ -33,6 +35,7 @@ export class DueniosController {
   }
 
   @Get(':id')
+  @Auth('DUENIO','ADMIN')
   @ApiOperation({ summary: 'Obtener un dueño por ID' })
   @ApiResponse({ status: 200, type: GetDuenioDto })
   findOne(@Param('id') id: string): Promise<GetDuenioDto> {
@@ -40,6 +43,7 @@ export class DueniosController {
   }
 
   @Put(':id')
+  @Auth('DUENIO','ADMIN')
   @ApiOperation({ summary: 'Actualizar un dueño por ID' })
   @ApiResponse({ status: 200, type: GetDuenioDto })
   update(
@@ -50,6 +54,7 @@ export class DueniosController {
   }
 
   @Delete(':id')
+  @Auth('DUENIO','ADMIN')
   @ApiOperation({ summary: 'Eliminar un dueño por ID' })
   remove(@Param('id') id: string) {
     return this.dueniosService.remove(id);

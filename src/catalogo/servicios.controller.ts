@@ -12,6 +12,7 @@ import { ServiciosService } from './servicios.service';
 import { CreateServicioDto } from './dto/create-servicio.dto';
 import { GetServicioDto } from './dto/get-servicio.dto';
 import { UpdateServicioDto } from './dto/update-servicio.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Catálogo - Servicios')
 @Controller('catalogo/servicios')
@@ -19,6 +20,7 @@ export class ServiciosController {
   constructor(private readonly serviciosService: ServiciosService) {}
 
   @Post()
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Agregar un nuevo servicio al catálogo' })
   @ApiResponse({ status: 201, type: GetServicioDto })
   create(@Body() createServicioDto: CreateServicioDto): Promise<GetServicioDto> {
@@ -40,6 +42,7 @@ export class ServiciosController {
   }
 
   @Put(':id')
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Actualizar un servicio por ID' })
   @ApiResponse({ status: 200, type: GetServicioDto })
   update(
@@ -50,6 +53,7 @@ export class ServiciosController {
   }
 
   @Delete(':id')
+  @Auth('ADMIN')
   @ApiOperation({ summary: 'Eliminar un servicio por ID' })
   remove(@Param('id') id: string) {
     return this.serviciosService.remove(id);

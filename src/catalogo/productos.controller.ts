@@ -40,6 +40,7 @@ import { UpdateProductoDto } from './dto/update-producto.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 interface UploadedImageFile {
   fieldname: string;
@@ -92,6 +93,7 @@ export class ProductosController {
 
   @Post()
   @ApiOperation({ summary: 'Agregar un nuevo producto al catálogo' })
+  @Auth('ADMIN')
   @ApiResponse({ status: 201, type: GetProductoDto })
   create(@Body() createProductoDto: CreateProductoDto): Promise<GetProductoDto> {
     return this.productosService.create(createProductoDto);
@@ -245,6 +247,7 @@ export class ProductosController {
   @Post(':id/resenas')
   @ApiOperation({ summary: 'Escribir una nueva reseña para un producto' })
   @ApiResponse({ status: 201, type: GetResenaDto })
+  @Auth()
   addResena(
     @Param('id', ProductoExistePipe) id: string,
     @Body() createResenaDto: CreateResenaDto,
@@ -255,6 +258,7 @@ export class ProductosController {
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar un producto por ID' })
   @ApiResponse({ status: 200, type: GetProductoDto })
+  @Auth('ADMIN')
   update(
     @Param('id', ProductoExistePipe) id: string,
     @Body() updateProductoDto: UpdateProductoDto,
@@ -265,6 +269,7 @@ export class ProductosController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @Auth('ADMIN')
   @ApiBearerAuth()
   @ApiCookieAuth('access_token')
   @ApiOperation({ summary: 'Eliminar un producto por ID (Solo ADMIN)' })

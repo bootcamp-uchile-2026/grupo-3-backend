@@ -12,7 +12,9 @@ import { MascotasService } from './mascotas.service';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { GetMascotaDto } from './dto/get-mascota.dto';
 import { UpdateMascotaDto } from './dto/update-mascota.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
+@Auth()
 @ApiTags('Usuarios - Mascotas (Ficha Clínica)')
 @Controller('usuarios/mascotas')
 export class MascotasController {

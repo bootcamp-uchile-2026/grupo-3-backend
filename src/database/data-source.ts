@@ -16,6 +16,7 @@ import { OrdenExamen } from '../gestion-clinica/entities/orden-examen.entity';
 import { Examen } from '../gestion-clinica/entities/examen.entity';
 import { InitialSchema1731880000000 } from './migrations/1731880000000-InitialSchema';
 import { SeedInitialData1731880001000 } from './migrations/1731880001000-SeedInitialData';
+import { HashearPasswords1731880002000 } from './migrations/1731880002000-HashearPasswords';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'mysql',
@@ -45,7 +46,7 @@ export const dataSourceOptions: DataSourceOptions = {
     OrdenExamen,
     Examen,
   ],
-  migrations: [InitialSchema1731880000000, SeedInitialData1731880001000],
+  migrations: [InitialSchema1731880000000, SeedInitialData1731880001000, HashearPasswords1731880002000],
   synchronize: false,
   migrationsRun: true,
 };

@@ -10,8 +10,10 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DireccionesService } from './direcciones.service';
 import { CreateDireccionDto, GetDireccionDto } from './dto/direccion.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Usuarios - Libreta de Direcciones')
+@Auth()
 @Controller('usuarios')
 export class DireccionesController {
   constructor(private readonly direccionesService: DireccionesService) {}

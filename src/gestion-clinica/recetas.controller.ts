@@ -22,13 +22,16 @@ import { RecetasService } from './recetas.service';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { GetRecetaDto } from './dto/get-receta.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Gestión de Clínica - Recetas')
+@Auth()
 @Controller('gestion-clinica/recetas')
 export class RecetasController {
   constructor(private readonly recetasService: RecetasService) {}
 
   @Post()
+  @Auth('VETERINARIO', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('VETERINARIO', 'ADMIN')
   @ApiBearerAuth()
@@ -58,6 +61,7 @@ export class RecetasController {
   }
 
   @Put(':id')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({ summary: 'Actualizar una receta por ID' })
   @ApiResponse({ status: 200, type: GetRecetaDto })
   update(
@@ -68,6 +72,7 @@ export class RecetasController {
   }
 
   @Delete(':id')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({ summary: 'Eliminar una receta por ID' })
   remove(@Param('id') id: string) {
     return this.recetasService.remove(id);

@@ -22,9 +22,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET || 'petlove_jwt_secret_key_2026',
-      });
+      const payload = await this.jwtService.verifyAsync(token);
       request['user'] = payload;
       return true;
     } catch {
@@ -33,15 +31,11 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractToken(request: Request): string | undefined {
-    // 1. Priorizar Cookie HttpOnly (requerido por Frontend)
-    const cookieToken = (request as Request & { cookies?: Record<string, string> })
-      .cookies?.['access_token'];
-    if (cookieToken) {
-      return cookieToken;
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    if (type === 'Bearer' && token) {
+      return token;
     }
 
-    // 2. Soportar también Authorization: Bearer <token> (Swagger / Mobile)
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    return (request as Request & { cookies?: Record<string, string> }).cookies?.['access_token'];
   }
 }

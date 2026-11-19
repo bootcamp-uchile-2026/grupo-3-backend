@@ -6,13 +6,16 @@ import { CreateExamenDto } from './dto/create-examen.dto';
 import { GetOrdenExamenDto } from './dto/get-orden-examen.dto';
 import { GetExamenDto } from './dto/get-examen.dto';
 import { UpdateExamenDto } from './dto/update-examen.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Gestión de Clínica - Órdenes y Exámenes')
+@Auth()
 @Controller('gestion-clinica/examenes')
 export class ExamenesController {
   constructor(private readonly examenesService: ExamenesService) {}
 
   @Post('ordenes')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({
     summary: 'Emitir una nueva orden de examen asociada a una consulta',
   })
@@ -49,6 +52,7 @@ export class ExamenesController {
   }
 
   @Post()
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({
     summary: 'Registrar un examen específico dentro de una orden',
   })
@@ -79,6 +83,7 @@ export class ExamenesController {
   }
 
   @Put(':id')
+  @Auth('VETERINARIO', 'ADMIN')
   @ApiOperation({ summary: 'Actualizar estado/resultados de un examen por ID' })
   @ApiResponse({ status: 200, type: GetExamenDto })
   updateExamen(

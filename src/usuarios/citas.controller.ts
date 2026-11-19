@@ -12,8 +12,10 @@ import { CitasService } from './citas.service';
 import { CreateCitaDto } from './dto/create-cita.dto';
 import { GetCitaDto } from './dto/get-cita.dto';
 import { UpdateCitaDto } from './dto/update-cita.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('Usuarios - Agenda de Citas')
+@Auth()
 @Controller('usuarios/citas')
 export class CitasController {
   constructor(private readonly citasService: CitasService) {}

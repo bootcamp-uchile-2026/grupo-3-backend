@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { DueniosService } from '../usuarios/duenios.service';
@@ -6,6 +6,7 @@ import { VeterinariosService } from '../usuarios/veterinarios.service';
 import { LoginDto, AuthResponseDto } from './dto/login.dto';
 import { CreateDuenioDto } from '../usuarios/dto/create-duenio.dto';
 import { GetDuenioDto } from '../usuarios/dto/get-duenio.dto';
+import { CredencialesInvalidasError } from 'src/common/errors/credenciales-invalidas.error';
 
 @Injectable()
 export class AuthService {
@@ -30,16 +31,13 @@ export class AuthService {
 
     const user = duenio || veterinario;
     if (!user || !user.password) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+      throw new CredencialesInvalidasError();
     }
 
-    const isHashed = user.password.startsWith('$2');
-    const isValid = isHashed
-      ? await bcrypt.compare(password, user.password)
-      : password === user.password;
+    const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+      throw new CredencialesInvalidasError();
     }
 
     const rol = user.rol || (veterinario ? 'VETERINARIO' : 'DUENIO');
