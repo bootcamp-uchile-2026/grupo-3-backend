@@ -31,10 +31,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message: string | string[] = 'Error interno del servidor';
 
     if (exception instanceof HttpException) {
-      // Errores controlados: validaciones, recursos no encontrados, etc.
+      // Errores controlados: validaciones, rutas inexistentes, guards, etc.
       status = exception.getStatus();
       const body = exception.getResponse();
-      if (typeof body === 'string') {
+
+      // Validacion de existencia de ruta: "Cannot GET /ruta"
+      const esRutaInexistente =
+        status === HttpStatus.NOT_FOUND &&
+        typeof body === 'object' &&
+        typeof (body as { message?: unknown }).message === 'string' &&
+        (body as { message: string }).message.startsWith('Cannot ');
+
+      if (esRutaInexistente) {
+        error = 'Not Found';
+        message = `La ruta ${req.method} ${req.originalUrl} no existe`;
+      } else if (typeof body === 'string') {
         message = body;
         error = exception.name;
       } else {
