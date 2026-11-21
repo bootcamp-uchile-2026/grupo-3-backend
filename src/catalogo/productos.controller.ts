@@ -100,6 +100,7 @@ export class ProductosController {
   }
 
   @Post('imagenes')
+  @Auth('ADMIN')
   @UseInterceptors(FileInterceptor('imagen', multerImageOptions))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
@@ -135,6 +136,7 @@ export class ProductosController {
   }
 
   @Post(':id/imagenes')
+  @Auth('ADMIN')
   @UseInterceptors(FileInterceptor('imagen', multerImageOptions))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
